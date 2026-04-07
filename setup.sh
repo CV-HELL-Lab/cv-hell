@@ -248,9 +248,20 @@ setup_database() {
 # ---------- 克隆代码 ----------
 clone_repo() {
   if [[ "$CLONE_REPO" == true ]]; then
-    info "克隆项目代码..."
-    git clone "$REPO_URL" "$PROJECT_DIR"
-    ok "代码克隆完成"
+    if [[ -d "$PROJECT_DIR/.git" ]]; then
+      info "目录已存在且是 Git 仓库，拉取最新代码..."
+      cd "$PROJECT_DIR" && git fetch --all && git reset --hard origin/main
+      ok "代码已更新到最新版本"
+    elif [[ -d "$PROJECT_DIR" ]]; then
+      warn "目录已存在但不是 Git 仓库，备份后重新克隆..."
+      mv "$PROJECT_DIR" "${PROJECT_DIR}.bak.$(date +%s)"
+      git clone "$REPO_URL" "$PROJECT_DIR"
+      ok "代码克隆完成（旧目录已备份）"
+    else
+      info "克隆项目代码..."
+      git clone "$REPO_URL" "$PROJECT_DIR"
+      ok "代码克隆完成"
+    fi
   else
     ok "使用现有代码: $PROJECT_DIR"
     info "拉取最新代码..."
