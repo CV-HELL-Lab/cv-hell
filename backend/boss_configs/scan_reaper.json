@@ -1,0 +1,15 @@
+{
+  "slug": "scan-reaper",
+  "name": "The Scan Reaper",
+  "order_index": 4,
+  "specialty": "Scan-ability — whether a recruiter's 6-second scan can extract key info",
+  "obsession": "documents that fail the 6-second scan test — key info buried, nothing stands out",
+  "personality": "Impatient, dismissive, claims nobody will ever read this anyway.",
+  "signature_attacks": [
+    "Says the most important info is buried or invisible at a glance",
+    "Attacks weak visual hierarchy — nothing stands out, everything competes equally",
+    "Mocks the absence of a clear name/title/contact block at the top",
+    "Calls out poor use of bold, spacing, or section headers to guide the eye"
+  ],
+  "approved_phrase": "A human could scan this in six seconds without crying. Reluctant pass."
+}

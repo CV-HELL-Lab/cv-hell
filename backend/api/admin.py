@@ -1,0 +1,493 @@
+import os
+import re
+import uuid
+from typing import Literal
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from core.database import get_db
+from core.security import verify_password, create_admin_token
+from core.config import settings
+from api.deps import get_admin
+from models.boss import Boss
+from models.user import User
+from models.submission import Submission
+from models.boss_response import BossResponse
+from models.boss_defeat import BossDefeat
+from models.prize_pool import PrizePool
+from models.llm_config import LLMConfig
+from llm.client import PROVIDER_DEFAULTS
+import json
+
+router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LLMConfigCreateRequest(BaseModel):
+    provider: Literal["qwen", "deepseek"]
+    api_key: str
+    base_url: str | None = None
+    model: str | None = None
+    is_active: bool = True
+
+
+class LLMConfigUpdateRequest(BaseModel):
+    provider: Literal["qwen", "deepseek"] | None = None
+    api_key: str | None = None
+    base_url: str | None = None
+    model: str | None = None
+    is_active: bool | None = None
+
+
+def _mask_api_key(api_key: str) -> str:
+    if len(api_key) <= 8:
+        return "*" * len(api_key)
+    return f"{api_key[:4]}{'*' * (len(api_key) - 8)}{api_key[-4:]}"
+
+
+def _serialize_llm_config(config: LLMConfig) -> dict:
+    return {
+        "id": str(config.id),
+        "provider": config.provider,
+        "base_url": config.base_url,
+        "model": config.model,
+        "is_active": config.is_active,
+        "api_key_masked": _mask_api_key(config.api_key),
+        "created_at": config.created_at.isoformat() if config.created_at else None,
+        "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+    }
+
+
+def _normalize_provider_defaults(
+    provider: Literal["qwen", "deepseek"],
+    base_url: str | None,
+    model: str | None,
+) -> tuple[str, str]:
+    defaults = PROVIDER_DEFAULTS[provider]
+    resolved_base_url = (base_url or defaults["base_url"]).strip()
+    resolved_model = (model or defaults["model"]).strip()
+    if not resolved_base_url or not resolved_model:
+        raise HTTPException(status_code=400, detail="base_url and model are required")
+    return resolved_base_url, resolved_model
+
+
+def _set_active_llm_config(db: Session, config_id: uuid.UUID) -> None:
+    db.query(LLMConfig).update({"is_active": False})
+    db.query(LLMConfig).filter(LLMConfig.id == config_id).update({"is_active": True})
+
+
+@router.post("/login")
+def admin_login(body: AdminLoginRequest):
+    if body.username != settings.ADMIN_USERNAME:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(body.password, settings.ADMIN_PASSWORD_HASH):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"token": create_admin_token()}
+
+
+@router.post("/logout")
+def admin_logout(_: str = Depends(get_admin)):
+    return {"ok": True}
+
+
+@router.get("/llm-configs")
+def list_llm_configs(db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    configs = db.query(LLMConfig).order_by(LLMConfig.created_at.desc()).all()
+    return {"items": [_serialize_llm_config(config) for config in configs]}
+
+
+@router.post("/llm-configs", status_code=201)
+def create_llm_config(body: LLMConfigCreateRequest, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    api_key = body.api_key.strip()
+    if not api_key:
+        raise HTTPException(status_code=400, detail="api_key is required")
+
+    base_url, model = _normalize_provider_defaults(body.provider, body.base_url, body.model)
+
+    config = LLMConfig(
+        id=uuid.uuid4(),
+        provider=body.provider,
+        api_key=api_key,
+        base_url=base_url,
+        model=model,
+        is_active=False,
+    )
+    db.add(config)
+    db.flush()
+
+    if body.is_active:
+        _set_active_llm_config(db, config.id)
+
+    db.commit()
+    db.refresh(config)
+    return _serialize_llm_config(config)
+
+
+@router.patch("/llm-configs/{config_id}")
+def update_llm_config(
+    config_id: uuid.UUID,
+    body: LLMConfigUpdateRequest,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    config = db.query(LLMConfig).filter(LLMConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="LLM config not found")
+
+    provider = body.provider or config.provider
+    if body.provider is not None:
+        config.provider = body.provider
+
+    if body.api_key is not None:
+        api_key = body.api_key.strip()
+        if not api_key:
+            raise HTTPException(status_code=400, detail="api_key cannot be empty")
+        config.api_key = api_key
+
+    if body.base_url is not None:
+        config.base_url = body.base_url.strip()
+    elif body.provider is not None:
+        config.base_url = PROVIDER_DEFAULTS[provider]["base_url"]
+
+    if body.model is not None:
+        config.model = body.model.strip()
+    elif body.provider is not None:
+        config.model = PROVIDER_DEFAULTS[provider]["model"]
+
+    config.base_url, config.model = _normalize_provider_defaults(provider, config.base_url, config.model)
+
+    if body.is_active is True:
+        _set_active_llm_config(db, config.id)
+    elif body.is_active is False:
+        config.is_active = False
+
+    db.commit()
+    db.refresh(config)
+    return _serialize_llm_config(config)
+
+
+@router.post("/llm-configs/{config_id}/activate")
+def activate_llm_config(config_id: uuid.UUID, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    config = db.query(LLMConfig).filter(LLMConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="LLM config not found")
+    _set_active_llm_config(db, config.id)
+    db.commit()
+    db.refresh(config)
+    return _serialize_llm_config(config)
+
+
+@router.delete("/llm-configs/{config_id}")
+def delete_llm_config(config_id: uuid.UUID, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    config = db.query(LLMConfig).filter(LLMConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="LLM config not found")
+    db.delete(config)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/stats")
+def get_stats(db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    boss = db.query(Boss).filter(Boss.status == "current").first()
+    total_users = db.query(func.count(User.id)).scalar()
+    total_submissions = db.query(func.count(Submission.id)).scalar()
+    total_approvals = db.query(func.count(BossResponse.id)).filter(BossResponse.approved == True).scalar()
+    defeats = db.query(BossDefeat).order_by(BossDefeat.defeated_at).all()
+    return {
+        "current_boss": {"name": boss.name, "status": boss.status} if boss else None,
+        "total_users": total_users,
+        "total_submissions": total_submissions,
+        "total_approvals": total_approvals,
+        "world_first_defeats": [
+            {
+                "boss_name": d.boss.name,
+                "winner": d.user.display_name,
+                "defeated_at": d.defeated_at.isoformat(),
+            }
+            for d in defeats
+        ],
+    }
+
+
+@router.get("/bosses")
+def list_bosses(db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    bosses = db.query(Boss).order_by(Boss.order_index).all()
+    return [
+        {
+            "id": str(b.id),
+            "name": b.name,
+            "slug": b.slug,
+            "status": b.status,
+            "order_index": b.order_index,
+            "rudeness_level": b.rudeness_level,
+            "defeat": {
+                "winner": b.defeat.user.display_name,
+                "defeated_at": b.defeat.defeated_at.isoformat(),
+            } if b.defeat else None,
+        }
+        for b in bosses
+    ]
+
+
+class BossCreateRequest(BaseModel):
+    name: str
+    slug: str
+    specialty: str
+    obsession: str
+    personality: str
+    signature_attacks: list[str]
+    approved_phrase: str
+    order_index: int | None = None
+    rudeness_level: int = 2
+    status: str = "locked"
+
+
+class BossPatchRequest(BaseModel):
+    rudeness_level: int | None = None
+    status: str | None = None
+    order_index: int | None = None
+
+
+@router.post("/bosses", status_code=201)
+def create_boss(body: BossCreateRequest, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    # Validate slug format
+    if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', body.slug):
+        raise HTTPException(status_code=400, detail="slug must be lowercase alphanumeric with hyphens (e.g. 'my-boss')")
+
+    if db.query(Boss).filter(Boss.slug == body.slug).first():
+        raise HTTPException(status_code=409, detail=f"Boss with slug '{body.slug}' already exists")
+
+    if body.rudeness_level not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="rudeness_level must be 1, 2, or 3")
+
+    if body.status not in ("locked", "unlocked", "current", "defeated"):
+        raise HTTPException(status_code=400, detail="status must be one of: locked, unlocked, current, defeated")
+
+    # Auto-assign order_index if not provided
+    order_index = body.order_index
+    if order_index is None:
+        max_order = db.query(func.max(Boss.order_index)).scalar() or 0
+        order_index = max_order + 1
+
+    # Write boss config JSON file so LLM evaluator can load it
+    config = {
+        "slug": body.slug,
+        "name": body.name,
+        "order_index": order_index,
+        "specialty": body.specialty,
+        "obsession": body.obsession,
+        "personality": body.personality,
+        "signature_attacks": body.signature_attacks,
+        "approved_phrase": body.approved_phrase,
+    }
+    config_filename = body.slug.replace("-", "_") + ".json"
+    config_path = os.path.join(settings.BOSS_CONFIGS_PATH, config_filename)
+    os.makedirs(settings.BOSS_CONFIGS_PATH, exist_ok=True)
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
+    boss = Boss(
+        id=uuid.uuid4(),
+        name=body.name,
+        slug=body.slug,
+        order_index=order_index,
+        specialty=body.specialty,
+        status=body.status,
+        rudeness_level=body.rudeness_level,
+    )
+    db.add(boss)
+
+    # If setting as current, demote any existing current boss
+    if body.status == "current":
+        db.query(Boss).filter(Boss.slug != body.slug, Boss.status == "current").update({"status": "unlocked"})
+        db.flush()
+        pool = PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=0)
+        db.add(pool)
+
+    db.commit()
+    db.refresh(boss)
+
+    return {
+        "id": str(boss.id),
+        "name": boss.name,
+        "slug": boss.slug,
+        "order_index": boss.order_index,
+        "status": boss.status,
+        "specialty": boss.specialty,
+        "rudeness_level": boss.rudeness_level,
+        "config_file": config_filename,
+    }
+
+
+@router.patch("/bosses/{slug}")
+def patch_boss(slug: str, body: BossPatchRequest, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    boss = db.query(Boss).filter(Boss.slug == slug).first()
+    if not boss:
+        raise HTTPException(status_code=404, detail="Boss not found")
+    if body.rudeness_level is not None:
+        if body.rudeness_level not in (1, 2, 3):
+            raise HTTPException(status_code=400, detail="rudeness_level must be 1, 2, or 3")
+        boss.rudeness_level = body.rudeness_level
+    if body.status is not None:
+        boss.status = body.status
+    if body.order_index is not None:
+        boss.order_index = body.order_index
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/bosses/{slug}/activate")
+def activate_boss(slug: str, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    # Set all current bosses to unlocked, then set target to current
+    db.query(Boss).filter(Boss.status == "current").update({"status": "unlocked"})
+    boss = db.query(Boss).filter(Boss.slug == slug).first()
+    if not boss:
+        raise HTTPException(status_code=404, detail="Boss not found")
+    boss.status = "current"
+    # Ensure prize pool exists
+    pool = db.query(PrizePool).filter(PrizePool.boss_id == boss.id).first()
+    if not pool:
+        db.add(PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=0))
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/bosses/{slug}/reset")
+def reset_boss(slug: str, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    boss = db.query(Boss).filter(Boss.slug == slug).first()
+    if not boss:
+        raise HTTPException(status_code=404, detail="Boss not found")
+    db.query(BossDefeat).filter(BossDefeat.boss_id == boss.id).delete()
+    pool = db.query(PrizePool).filter(PrizePool.boss_id == boss.id).first()
+    if pool:
+        pool.settled = False
+        pool.winner_user_id = None
+        pool.settled_at = None
+    boss.status = "unlocked"
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/submissions")
+def list_submissions(
+    boss: str | None = None,
+    approved: bool | None = None,
+    page: int = 1,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    q = db.query(Submission)
+    if boss:
+        boss_obj = db.query(Boss).filter(Boss.slug == boss).first()
+        if boss_obj:
+            q = q.filter(Submission.boss_id == boss_obj.id)
+    if approved is not None:
+        q = q.join(BossResponse).filter(BossResponse.approved == approved)
+    total = q.count()
+    subs = q.order_by(Submission.created_at.desc()).offset((page - 1) * 20).limit(20).all()
+    return {
+        "total": total,
+        "page": page,
+        "items": [
+            {
+                "submission_id": str(s.id),
+                "user_handle": s.user.display_name,
+                "boss_name": s.boss.name,
+                "version_number": s.version_number,
+                "mood": s.boss_response.mood if s.boss_response else None,
+                "approved": s.boss_response.approved if s.boss_response else False,
+                "created_at": s.created_at.isoformat(),
+            }
+            for s in subs
+        ],
+    }
+
+
+@router.get("/submissions/{submission_id}")
+def get_submission_detail(
+    submission_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    s = db.query(Submission).filter(Submission.id == submission_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    r = s.boss_response
+    return {
+        "submission_id": str(s.id),
+        "user_handle": s.user.display_name,
+        "boss_name": s.boss.name,
+        "version_number": s.version_number,
+        "extracted_text": s.extracted_text,
+        "boss_response": {
+            "roast_opening": r.roast_opening,
+            "why_it_fails": r.why_it_fails,
+            "top_issues": json.loads(r.top_issues_json),
+            "fix_direction": r.fix_direction,
+            "mood": r.mood,
+            "approved": r.approved,
+            "raw_llm_response": r.raw_llm_response,
+        } if r else None,
+    }
+
+
+@router.get("/users")
+def list_users(page: int = 1, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    total = db.query(func.count(User.id)).scalar()
+    users = db.query(User).order_by(User.created_at.desc()).offset((page - 1) * 20).limit(20).all()
+    return {
+        "total": total,
+        "page": page,
+        "items": [
+            {
+                "user_id": str(u.id),
+                "display_name": u.display_name,
+                "email": u.email,
+                "points": u.points,
+                "total_submissions": len(u.submissions),
+                "created_at": u.created_at.isoformat(),
+            }
+            for u in users
+        ],
+    }
+
+
+@router.get("/users/{user_id}/submissions")
+def get_user_submissions(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    subs = db.query(Submission).filter(Submission.user_id == user_id).order_by(Submission.created_at.desc()).all()
+    return [
+        {
+            "submission_id": str(s.id),
+            "boss_name": s.boss.name,
+            "version_number": s.version_number,
+            "mood": s.boss_response.mood if s.boss_response else None,
+            "approved": s.boss_response.approved if s.boss_response else False,
+            "created_at": s.created_at.isoformat(),
+        }
+        for s in subs
+    ]
+
+
+@router.delete("/leaderboard/{defeat_id}")
+def delete_leaderboard_entry(
+    defeat_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    entry = db.query(BossDefeat).filter(BossDefeat.id == defeat_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    db.delete(entry)
+    db.commit()
+    return {"ok": True}

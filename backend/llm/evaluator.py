@@ -1,0 +1,68 @@
+"""
+Calls the LLM with the assembled boss evaluation payload.
+Returns parsed structured response.
+"""
+import json
+import logging
+from .client import get_llm_client
+from .prompt_builder import build_system_prompt, build_user_message
+
+logger = logging.getLogger(__name__)
+
+
+class EvaluationError(Exception):
+    pass
+
+
+def evaluate_resume(
+    boss_config: dict,
+    rudeness_level: int,
+    extracted_text: str,
+    image_base64_list: list[str],
+    prior_versions: list[dict],
+    reference_items: list[dict],
+) -> dict:
+    """
+    Call LLM and return parsed boss evaluation result.
+    Raises EvaluationError on failure.
+    """
+    system_prompt = build_system_prompt(boss_config, rudeness_level, reference_items)
+    user_content = build_user_message(extracted_text, image_base64_list, prior_versions)
+
+    try:
+        client, model = get_llm_client()
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            temperature=0.7,
+            max_tokens=1024,
+        )
+    except Exception as e:
+        logger.error(f"LLM call failed: {e}")
+        raise EvaluationError(f"LLM call failed: {e}")
+
+    raw = response.choices[0].message.content
+    logger.debug(f"Raw LLM response: {raw}")
+
+    try:
+        # Strip markdown code fences if present
+        clean = raw.strip()
+        if clean.startswith("```"):
+            clean = clean.split("```")[1]
+            if clean.startswith("json"):
+                clean = clean[4:]
+        result = json.loads(clean.strip())
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse LLM JSON: {e}\nRaw: {raw}")
+        raise EvaluationError(f"LLM returned invalid JSON: {e}")
+
+    required_fields = ["roast_opening", "why_it_fails", "top_issues", "fix_direction", "mood", "mood_level", "approved"]
+    for field in required_fields:
+        if field not in result:
+            raise EvaluationError(f"LLM response missing field: {field}")
+
+    result["raw"] = raw
+    return result

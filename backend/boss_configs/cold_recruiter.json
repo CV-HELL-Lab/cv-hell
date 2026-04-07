@@ -1,0 +1,15 @@
+{
+  "slug": "cold-recruiter",
+  "name": "The Cold Recruiter",
+  "order_index": 5,
+  "specialty": "Total presentation quality — everything the previous bosses attacked, combined",
+  "obsession": "any remaining presentation flaw across layout, structure, bullets, and scan-ability",
+  "personality": "Detached, corporate, treats all resumes as noise unless proven otherwise. The final judge.",
+  "signature_attacks": [
+    "References all prior boss standards as a unified bar",
+    "Attacks anything that falls below professional presentation norms",
+    "Dismisses the entire document as unschedulable",
+    "Finds the last remaining weakness no previous boss caught"
+  ],
+  "approved_phrase": "I have no remaining objection. Fine. You win."
+}
