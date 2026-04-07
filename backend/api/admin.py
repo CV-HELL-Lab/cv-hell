@@ -17,6 +17,7 @@ from models.submission import Submission
 from models.boss_response import BossResponse
 from models.boss_defeat import BossDefeat
 from models.prize_pool import PrizePool
+from models.point_transaction import PointTransaction
 from models.llm_config import LLMConfig
 from llm.client import PROVIDER_DEFAULTS
 import json
@@ -491,3 +492,33 @@ def delete_leaderboard_entry(
     db.delete(entry)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/factory-reset")
+def factory_reset(db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    """
+    Wipe all user-generated data and restore bosses to initial state.
+    Deletes: BossResponse, PointTransaction, BossDefeat, Submission, PrizePool, User.
+    Resets: all bosses to locked except order_index=1 which becomes current,
+    rudeness_level back to 2, creates fresh prize pools with 100 points.
+    LLM configs are preserved.
+    """
+    db.query(BossResponse).delete()
+    db.query(PointTransaction).delete()
+    db.query(BossDefeat).delete()
+    db.query(Submission).delete()
+    db.query(PrizePool).delete()
+    db.query(User).delete()
+
+    bosses = db.query(Boss).order_by(Boss.order_index).all()
+    for boss in bosses:
+        boss.rudeness_level = 2
+        if boss.order_index == 1:
+            boss.status = "current"
+        else:
+            boss.status = "locked"
+        pool = PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=100)
+        db.add(pool)
+
+    db.commit()
+    return {"ok": True, "message": "Factory reset complete. All user data wiped, bosses restored."}

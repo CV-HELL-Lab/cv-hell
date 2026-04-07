@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { Skull, AlertCircle, RefreshCw, Power } from "lucide-react";
+import { Skull, AlertCircle, RefreshCw, Power, Settings2 } from "lucide-react";
 import Link from "next/link";
 
 interface Boss {
@@ -130,6 +130,13 @@ export default function BossesPage() {
                   )}
                 </td>
                 <td className="p-4 text-right space-x-2">
+                  <Link
+                    href={`/admin/bosses/${boss.slug}`}
+                    className="inline-flex items-center px-3 py-1.5 bg-amber-950/30 hover:bg-amber-900/50 text-amber-500 border border-amber-900/30 font-mono text-xs uppercase transition-colors"
+                    title="Configure Rudeness Level"
+                  >
+                    <Settings2 size={14} className="mr-1" /> Configure
+                  </Link>
                   <button
                     onClick={() => handleActivate(boss.slug)}
                     disabled={boss.status === "current"}

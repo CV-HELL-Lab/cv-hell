@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { Activity, Users, FileText, CheckCircle, ShieldAlert, RotateCcw } from "lucide-react";
+import { Activity, Users, FileText, CheckCircle, ShieldAlert, RotateCcw, Bomb } from "lucide-react";
 
 interface Stats {
   current_boss: { name: string; status: string } | null;
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [resetting, setResetting] = useState(false);
   const router = useRouter();
 
   const fetchStats = async () => {
@@ -46,6 +47,27 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  const handleFactoryReset = async () => {
+    const confirmed = prompt(
+      'WARNING: This will DELETE all users, submissions, and records.\nType "RESET" to confirm:'
+    );
+    if (confirmed !== "RESET") return;
+
+    setResetting(true);
+    try {
+      const token = localStorage.getItem("cvhell_admin_token");
+      await api.post("/admin/factory-reset", {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      alert("Factory reset complete. All data wiped, bosses restored to initial state.");
+      fetchStats();
+    } catch (err) {
+      alert("Factory reset failed.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   if (loading) return <div className="p-8 font-mono text-gray-500">Loading telemetry...</div>;
   if (error) return <div className="p-8 font-mono text-amber-500">{error}</div>;
@@ -137,6 +159,27 @@ export default function AdminDashboard() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Factory Reset */}
+      <div className="mt-12 border-t border-red-900/30 pt-8">
+        <div className="bg-red-950/20 border border-red-900/40 p-6 rounded-sm flex justify-between items-center">
+          <div>
+            <h3 className="text-red-500 font-bold uppercase tracking-widest flex items-center">
+              <Bomb size={18} className="mr-2" /> Danger Zone
+            </h3>
+            <p className="text-gray-500 font-mono text-xs mt-2 max-w-xl">
+              Factory reset will permanently delete all users, submissions, boss defeat records, point transactions, and prize pools. Bosses will be restored to their initial order with the first boss set as current. LLM configs will be preserved.
+            </p>
+          </div>
+          <button
+            onClick={handleFactoryReset}
+            disabled={resetting}
+            className="shrink-0 px-6 py-3 bg-red-900 hover:bg-red-800 text-white font-bold uppercase tracking-widest text-sm transition-colors disabled:opacity-50 border border-red-700"
+          >
+            {resetting ? "Resetting..." : "Factory Reset"}
+          </button>
+        </div>
       </div>
     </div>
   );
