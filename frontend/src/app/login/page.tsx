@@ -6,6 +6,7 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +51,7 @@ export default function LoginPage() {
   return (
     <div className="flex-1 flex flex-col justify-center items-center px-4">
       <div className="w-full max-w-md bg-[#241b17] border border-[#4f3c32] p-8 rounded-sm shadow-2xl">
-        <h2 className="text-3xl font-bold mb-2 text-white uppercase tracking-wide">Enter the Hell</h2>
+        <h2 className="text-3xl font-bold mb-2 text-white uppercase tracking-wide">{t("auth", "login_title")}</h2>
         <p className="text-gray-400 mb-8 font-mono text-sm">Log in to face the current boss.</p>
 
         {error && (
@@ -61,7 +63,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">Email</label>
+            <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">{t("auth", "email")}</label>
             <input
               type="email"
               required
@@ -73,7 +75,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">Password</label>
+            <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">{t("auth", "password")}</label>
             <input
               type="password"
               required
@@ -89,15 +91,15 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-white text-black font-bold uppercase tracking-widest py-4 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#241b17] disabled:opacity-50 transition-all active:scale-[0.98]"
           >
-            {loading ? "Authenticating..." : "Submit"}
+            {loading ? t("auth", "signing_in") : t("auth", "login")}
           </button>
         </form>
 
         <div className="mt-8 text-center border-t border-[#3d2e26] pt-6">
           <p className="text-gray-400 text-sm font-mono">
-            New victim?{" "}
+            {t("auth", "no_account")}{" "}
             <Link href="/register" className="text-white hover:text-[var(--color-boss-accent)] underline underline-offset-4 transition-colors">
-              Register here
+              {t("auth", "register_link")}
             </Link>
           </p>
         </div>

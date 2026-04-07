@@ -240,6 +240,25 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
         )
     except EvaluationError as e:
         logger.error(f"Evaluation failed for submission {submission_id}: {e}")
+        
+        # LLM call failed, refund points
+        user_refund = db.query(User).filter(User.id == user_id).with_for_update().first()
+        pool_refund = db.query(PrizePool).filter(PrizePool.boss_id == boss_id).with_for_update().first()
+        
+        if user_refund and pool_refund:
+            user_refund.points += cost
+            pool_refund.total_points -= cost
+            
+            db.add(PointTransaction(
+                id=uuid.uuid4(),
+                user_id=user_id,
+                amount=cost,
+                type="refund",
+                boss_id=boss_id,
+                submission_id=submission_id,
+            ))
+            db.commit()
+            
         raise HTTPException(status_code=503, detail="The boss refused to respond. Try again.")
 
     # --- Step 3: Persist boss response ---

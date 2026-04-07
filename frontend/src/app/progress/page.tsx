@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { Skull, CheckCircle2, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface BossProgress {
   id: string;
@@ -20,6 +21,7 @@ interface BossProgress {
 export default function ProgressPage() {
   const [bosses, setBosses] = useState<BossProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -38,8 +40,8 @@ export default function ProgressPage() {
   return (
     <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-12">
       <div className="mb-12 border-b border-[#4f3c32] pb-6">
-        <h1 className="text-4xl font-black text-white uppercase tracking-wider mb-2">World Progress</h1>
-        <p className="text-gray-400 font-mono">The global roadmap of destruction. Defeat the current boss to unlock the next.</p>
+        <h1 className="text-4xl font-black text-white uppercase tracking-wider mb-2">{t("progress", "title")}</h1>
+        <p className="text-gray-400 font-mono">{t("progress", "desc")}</p>
       </div>
 
       {loading ? (
@@ -89,7 +91,7 @@ export default function ProgressPage() {
                         </h2>
                         {isCurrent && (
                           <span className="bg-[var(--color-boss-accent)] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-widest animate-pulse">
-                            Active
+                            {t("progress", "active")}
                           </span>
                         )}
                       </div>
@@ -103,7 +105,7 @@ export default function ProgressPage() {
                       {isDefeated && boss.world_first_defeater && (
                         <div className="mt-4 p-3 bg-green-950/20 border border-green-900/30 rounded-sm">
                           <p className="text-[var(--color-terminal-green)] font-mono text-xs uppercase tracking-widest">
-                            Defeated By: <span className="font-bold text-white">{boss.world_first_defeater}</span>
+                            {t("progress", "first_blood")} <span className="font-bold text-white">{boss.world_first_defeater}</span>
                           </p>
                           <p className="text-gray-500 font-mono text-xs mt-1">
                             {new Date(boss.defeated_at!).toLocaleString()}
@@ -118,11 +120,11 @@ export default function ProgressPage() {
                           href={`/boss/${boss.slug}`}
                           className="bg-white text-black font-bold px-6 py-2 uppercase tracking-widest text-sm hover:bg-gray-200 transition-colors flex items-center space-x-2"
                         >
-                          <span>Challenge</span>
+                          <span>{t("boss", "enter_arena")}</span>
                           <ArrowRight size={16} />
                         </Link>
                         <p className="text-gray-500 font-mono text-xs mt-3 uppercase tracking-wider">
-                          Prize Pool: <span className="text-white font-bold">{boss.prize_pool} PTS</span>
+                          {t("progress", "pool")} <span className="text-white font-bold">{boss.prize_pool} {t("nav", "pts")}</span>
                         </p>
                       </div>
                     )}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import NavBar from "@/components/NavBar";
 import DisclaimerModal from "@/components/DisclaimerModal";
 
@@ -31,13 +32,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#17110e] text-[#ededed]">
-        <AuthProvider>
-          <DisclaimerModal />
-          <NavBar />
-          <main className="flex-1 flex flex-col">
-            {children}
-          </main>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <DisclaimerModal />
+            <NavBar />
+            <main className="flex-1 flex flex-col">
+              {children}
+            </main>
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

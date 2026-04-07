@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { Trophy, Clock, Target, Loader2 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface LeaderboardEntry {
   user_handle: string;
@@ -18,6 +19,7 @@ export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [type, setType] = useState<BoardType>("first_defeaters");
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchBoard = async () => {
@@ -35,16 +37,16 @@ export default function LeaderboardPage() {
   }, [type]);
 
   const tabs: { id: BoardType; label: string; icon: any }[] = [
-    { id: "first_defeaters", label: "World Firsts", icon: Trophy },
-    { id: "fastest_clears", label: "Fastest Clears", icon: Clock },
-    { id: "fewest_attempts", label: "Fewest Attempts", icon: Target },
+    { id: "first_defeaters", label: t("leaderboard", "world_firsts"), icon: Trophy },
+    { id: "fastest_clears", label: t("leaderboard", "fastest_clears"), icon: Clock },
+    { id: "fewest_attempts", label: t("leaderboard", "fewest_attempts"), icon: Target },
   ];
 
   return (
     <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-12 flex flex-col h-full">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-wider mb-4">Hall of Winners</h1>
-        <p className="text-gray-400 font-mono">The few who survived the judgment.</p>
+        <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-wider mb-4">{t("leaderboard", "title")}</h1>
+        <p className="text-gray-400 font-mono">{t("leaderboard", "desc")}</p>
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 mb-8">
@@ -76,18 +78,18 @@ export default function LeaderboardPage() {
         ) : entries.length === 0 ? (
           <div className="h-full flex flex-col justify-center items-center text-center p-8">
             <Trophy size={48} className="text-gray-600 mb-4" />
-            <p className="text-gray-400 font-mono text-lg">No records found for this category yet.</p>
+            <p className="text-gray-400 font-mono text-lg">{t("leaderboard", "none")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto h-full custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#30241e] border-b border-[#4f3c32] text-gray-500 font-mono text-xs uppercase tracking-widest">
-                  <th className="p-4 font-normal">Rank</th>
-                  <th className="p-4 font-normal">Challenger</th>
-                  <th className="p-4 font-normal">Boss Defeated</th>
-                  <th className="p-4 font-normal">Metric</th>
-                  <th className="p-4 font-normal text-right">Date Achieved</th>
+                  <th className="p-4 font-normal">{t("leaderboard", "rank")}</th>
+                  <th className="p-4 font-normal">{t("leaderboard", "victor")}</th>
+                  <th className="p-4 font-normal">{t("leaderboard", "boss")}</th>
+                  <th className="p-4 font-normal">{t("leaderboard", "record")}</th>
+                  <th className="p-4 font-normal text-right">{t("leaderboard", "date")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#3d2e26]">

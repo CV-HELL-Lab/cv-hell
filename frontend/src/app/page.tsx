@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 import { ArrowRight, Trophy, Skull } from "lucide-react";
 
 interface BossData {
@@ -18,6 +19,7 @@ interface BossData {
 }
 
 export default function HomePage() {
+  const { t } = useLanguage();
   const [boss, setBoss] = useState<BossData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export default function HomePage() {
     return (
       <div className="flex-1 flex justify-center items-center">
         <div className="animate-pulse text-[var(--color-boss-accent)] font-mono font-bold tracking-widest">
-          SUMMONING THE BOSS...
+          {t("home", "summoning")}
         </div>
       </div>
     );
@@ -52,8 +54,8 @@ export default function HomePage() {
     return (
       <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
         <Skull size={64} className="text-gray-600 mb-6" />
-        <h1 className="text-4xl font-bold text-white mb-4">Hell is Empty</h1>
-        <p className="text-gray-400 font-mono">No active boss found. The servers are judging you.</p>
+        <h1 className="text-4xl font-bold text-white mb-4">{t("home", "empty_title")}</h1>
+        <p className="text-gray-400 font-mono">{t("home", "empty_desc")}</p>
       </div>
     );
   }
@@ -66,7 +68,7 @@ export default function HomePage() {
       <div className="max-w-3xl w-full text-center space-y-10 z-10">
         <div className="space-y-4">
           <p className="text-[var(--color-boss-accent)] font-mono font-bold tracking-[0.2em] text-sm uppercase">
-            Active Global Target
+            {t("home", "active_target")}
           </p>
           <h1 className="text-6xl sm:text-8xl font-black text-white uppercase tracking-tighter drop-shadow-lg">
             {boss.name}
@@ -78,9 +80,9 @@ export default function HomePage() {
 
         <div className="inline-flex flex-col items-center bg-[#241b17] border border-[#4f3c32] px-10 py-6 rounded-sm shadow-xl">
           <Trophy size={32} className="text-[#fbbf24] mb-3" />
-          <p className="text-gray-400 text-sm font-mono uppercase tracking-widest mb-1">Current Prize Pool</p>
+          <p className="text-gray-400 text-sm font-mono uppercase tracking-widest mb-1">{t("home", "prize_pool")}</p>
           <p className="text-4xl font-bold text-white tracking-wider font-mono">
-            {boss.prize_pool} <span className="text-xl text-[var(--color-terminal-green)]">PTS</span>
+            {boss.prize_pool} <span className="text-xl text-[var(--color-terminal-green)]">{t("nav", "pts")}</span>
           </p>
         </div>
 
@@ -89,11 +91,11 @@ export default function HomePage() {
             href={`/boss/${boss.slug}`}
             className="inline-flex items-center space-x-3 bg-white text-black font-black uppercase tracking-widest text-xl px-12 py-5 hover:bg-gray-200 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
           >
-            <span>Face the Boss</span>
+            <span>{t("home", "face_boss")}</span>
             <ArrowRight strokeWidth={3} />
           </Link>
           <p className="mt-4 text-sm text-gray-500 font-mono">
-            Upload your CV. Make it shut up.
+            {t("home", "upload_desc")}
           </p>
         </div>
       </div>

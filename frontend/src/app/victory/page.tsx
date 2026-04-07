@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trophy, ArrowRight, CheckCircle } from "lucide-react";
 import ReactConfetti from "react-confetti";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface VictoryData {
   world_first: boolean;
@@ -15,6 +16,7 @@ interface VictoryData {
 export default function VictoryPage() {
   const [data, setData] = useState<VictoryData | null>(null);
   const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 });
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Read victory data from sessionStorage
@@ -59,7 +61,7 @@ export default function VictoryPage() {
         <div className="space-y-4">
           <CheckCircle size={64} className="mx-auto text-[var(--color-terminal-green)] mb-6" />
           <h1 className="text-6xl sm:text-8xl font-black text-white uppercase tracking-tighter drop-shadow-lg">
-            You made it shut up.
+            {t("victory", "title")}
           </h1>
           <p className="text-xl text-gray-400 font-mono italic">
             "{data.approved_phrase || "I have no remaining objection."}"
@@ -72,15 +74,15 @@ export default function VictoryPage() {
               <Trophy size={48} className="text-[#fbbf24]" />
             </div>
             <h2 className="text-3xl font-bold text-[#fbbf24] uppercase tracking-widest mb-2">
-              World First Kill
+              {t("leaderboard", "world_firsts")}
             </h2>
             <p className="text-gray-300 font-mono text-sm mb-6">
-              You are the reason everyone else gets to fight the next boss.
+              {t("victory", "world_first")}
             </p>
             <div className="inline-block bg-[#17110e] border border-[#4f3c32] px-8 py-4">
-              <span className="text-gray-500 font-mono text-xs uppercase tracking-widest block mb-1">Prize Pool Claimed</span>
+              <span className="text-gray-500 font-mono text-xs uppercase tracking-widest block mb-1">{t("victory", "prize_won")}</span>
               <span className="text-4xl font-bold text-white tracking-wider font-mono">
-                +{data.points_won} <span className="text-[var(--color-terminal-green)] text-xl">PTS</span>
+                +{data.points_won} <span className="text-[var(--color-terminal-green)] text-xl">{t("nav", "pts")}</span>
               </span>
             </div>
           </div>
@@ -90,7 +92,7 @@ export default function VictoryPage() {
               Reluctant Approval
             </h2>
             <p className="text-gray-400 font-mono text-sm">
-              You silenced it. Someone got here before you, but the boss has nothing left to say.
+              {t("victory", "not_first")}
             </p>
           </div>
         )}
@@ -100,7 +102,7 @@ export default function VictoryPage() {
             href="/progress"
             className="inline-flex items-center space-x-2 bg-white text-black font-bold uppercase tracking-widest px-8 py-4 hover:bg-gray-200 transition-colors w-full sm:w-auto justify-center"
           >
-            <span>See Next Boss</span>
+            <span>{t("progress", "title")}</span>
             <ArrowRight size={18} />
           </Link>
           <Link
@@ -108,7 +110,7 @@ export default function VictoryPage() {
             className="inline-flex items-center space-x-2 bg-[#241b17] border border-[#4f3c32] text-white font-bold uppercase tracking-widest px-8 py-4 hover:bg-[#3d2e26] transition-colors w-full sm:w-auto justify-center"
           >
             <Trophy size={18} />
-            <span>Leaderboard</span>
+            <span>{t("leaderboard", "title")}</span>
           </Link>
         </div>
       </div>

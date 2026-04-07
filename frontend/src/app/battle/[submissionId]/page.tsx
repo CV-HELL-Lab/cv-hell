@@ -4,6 +4,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Loader2, AlertCircle, RefreshCw, Trophy } from "lucide-react";
 
 interface BossResponse {
@@ -31,6 +32,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
   const { submissionId } = use(params);
   const router = useRouter();
   const { user, updatePoints } = useAuth();
+  const { t } = useLanguage();
   
   const [submission, setSubmission] = useState<SubmissionData | null>(null);
   const [bossSlug, setBossSlug] = useState<string>("");
@@ -58,7 +60,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
         }
       } catch (err) {
         console.error("Failed to load submission", err);
-        setError("Failed to load battle data. Are you lost?");
+        setError(t("battle", "lost"));
       } finally {
         setLoading(false);
       }
@@ -126,7 +128,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
     return (
       <div className="flex-1 flex justify-center items-center flex-col space-y-4">
         <Loader2 className="animate-spin text-[var(--color-boss-accent)]" size={48} />
-        <span className="text-gray-400 font-mono tracking-widest uppercase">Loading arena...</span>
+        <span className="text-gray-400 font-mono tracking-widest uppercase">{t("battle", "loading_arena")}</span>
       </div>
     );
   }
@@ -149,17 +151,17 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
       <div className="flex justify-between items-end mb-6 border-b border-[#4f3c32] pb-4">
         <div>
           <h1 className="text-2xl font-black text-white uppercase tracking-widest">
-            Battle <span className="text-[var(--color-boss-accent)]">#{submission.version_number}</span>
+            {t("battle", "battle")} <span className="text-[var(--color-boss-accent)]">#{submission.version_number}</span>
           </h1>
           <p className="text-gray-500 font-mono text-xs mt-1">
-            Submitted at {new Date(submission.created_at).toLocaleString()}
+            {t("battle", "submitted_at")} {new Date(submission.created_at).toLocaleString()}
           </p>
         </div>
         {prizePool !== null && (
           <div className="flex items-center space-x-2 bg-[#241b17] border border-[#4f3c32] px-4 py-2 rounded-sm">
             <Trophy size={16} className="text-[#fbbf24]" />
-            <span className="font-mono text-sm text-gray-400 uppercase tracking-widest">Pool:</span>
-            <span className="font-mono font-bold text-white">{prizePool} <span className="text-[var(--color-terminal-green)] text-xs">PTS</span></span>
+            <span className="font-mono text-sm text-gray-400 uppercase tracking-widest">{t("battle", "pool")}</span>
+            <span className="font-mono font-bold text-white">{prizePool} <span className="text-[var(--color-terminal-green)] text-xs">{t("nav", "pts")}</span></span>
           </div>
         )}
       </div>
@@ -169,20 +171,20 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
         {/* Left Pane: Resume Preview */}
         <div className="bg-[#241b17] border border-[#3d2e26] rounded-sm flex flex-col h-[calc(100vh-200px)]">
           <div className="bg-[#30241e] border-b border-[#4f3c32] p-3 shrink-0">
-            <h3 className="text-gray-400 font-mono text-xs uppercase tracking-widest">Document Structure (Text Extraction)</h3>
+            <h3 className="text-gray-400 font-mono text-xs uppercase tracking-widest">{t("battle", "doc_structure")}</h3>
           </div>
           <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-gray-300 whitespace-pre-wrap leading-relaxed custom-scrollbar">
-            {submission.extracted_text || "No text extracted. Did you upload a scanned image?"}
+            {submission.extracted_text || t("battle", "no_text")}
           </div>
         </div>
 
         {/* Right Pane: Boss Response */}
         <div className="bg-[#17110e] border border-[#4f3c32] rounded-sm flex flex-col h-[calc(100vh-200px)] relative overflow-hidden shadow-2xl">
           <div className="bg-[var(--color-boss-accent)]/10 border-b border-[var(--color-boss-accent)]/30 p-4 shrink-0 flex justify-between items-center">
-            <h3 className="text-[var(--color-boss-accent)] font-bold uppercase tracking-widest">Boss Judgment</h3>
+            <h3 className="text-[var(--color-boss-accent)] font-bold uppercase tracking-widest">{t("battle", "judgment")}</h3>
             {submission.boss_response && (
               <span className="bg-[#241b17] text-gray-300 text-[10px] uppercase tracking-widest px-3 py-1 border border-[#4f3c32]">
-                Mood: Level {submission.boss_response.mood_level}
+                {t("battle", "mood", { level: submission.boss_response.mood_level })}
               </span>
             )}
           </div>
@@ -195,8 +197,8 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[var(--color-boss-accent)]/20 rounded-full blur-xl animate-pulse" />
                 </div>
                 <div className="text-center space-y-2">
-                  <h2 className="text-xl font-bold text-white uppercase tracking-widest">The Boss is Reading</h2>
-                  <p className="text-gray-500 font-mono text-sm animate-pulse">Analyzing structural integrity...</p>
+                  <h2 className="text-xl font-bold text-white uppercase tracking-widest">{t("battle", "boss_reading")}</h2>
+                  <p className="text-gray-500 font-mono text-sm animate-pulse">{t("battle", "analyzing")}</p>
                 </div>
               </div>
             ) : error ? (
@@ -207,7 +209,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                     onClick={() => triggerEvaluation(submission.boss_id)}
                     className="mt-4 px-6 py-2 bg-amber-900/50 hover:bg-amber-800 transition-colors text-white font-mono text-sm uppercase tracking-widest border border-amber-500/50"
                   >
-                    Retry Submission
+                    {t("battle", "retry")}
                   </button>
                </div>
             ) : submission.boss_response ? (
@@ -229,7 +231,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                 {/* Why it fails */}
                 {submission.boss_response.why_it_fails && (
                   <div className="bg-[#241b17] p-5 border border-[#3d2e26]">
-                    <h4 className="text-gray-500 font-mono text-xs uppercase tracking-widest mb-2">Core Failure</h4>
+                    <h4 className="text-gray-500 font-mono text-xs uppercase tracking-widest mb-2">{t("battle", "core_failure")}</h4>
                     <p className="text-gray-300">{submission.boss_response.why_it_fails}</p>
                   </div>
                 )}
@@ -238,7 +240,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                 {submission.boss_response.top_issues.length > 0 && (
                   <div>
                     <h4 className="text-[var(--color-boss-accent)] font-mono text-xs font-bold uppercase tracking-widest mb-3 flex items-center">
-                      <AlertCircle size={14} className="mr-2" /> Structural Crimes
+                      <AlertCircle size={14} className="mr-2" /> {t("battle", "crimes")}
                     </h4>
                     <ul className="space-y-3">
                       {submission.boss_response.top_issues.map((issue, idx) => (
@@ -254,7 +256,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                 {/* Fix Direction */}
                 {submission.boss_response.fix_direction && (
                   <div className="bg-gray-900/40 p-5 border-l-2 border-gray-500">
-                    <h4 className="text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Fix Direction</h4>
+                    <h4 className="text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">{t("battle", "fix_dir")}</h4>
                     <p className="text-gray-300 text-sm">{submission.boss_response.fix_direction}</p>
                   </div>
                 )}
@@ -270,7 +272,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                 className="w-full bg-white text-black font-bold uppercase tracking-widest py-4 hover:bg-gray-200 transition-colors flex justify-center items-center space-x-2 group"
               >
                 <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
-                <span>Adjust & Resubmit (10 PTS)</span>
+                <span>{t("battle", "adjust")}</span>
               </button>
             </div>
           )}
