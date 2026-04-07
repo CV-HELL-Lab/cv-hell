@@ -93,24 +93,22 @@ export default function NavBar() {
       </div>
       
       {/* Mobile nav links */}
-      <div className="md:hidden border-t border-[#3d2e26] bg-[#241b17] px-4 py-2 flex justify-between items-center text-xs font-mono">
-        <div className="flex space-x-4">
-          <Link href="/progress" className="text-gray-400 hover:text-white flex items-center space-x-1">
-            <Activity size={14} />
-            <span>PROGRESS</span>
-          </Link>
-          <Link href="/leaderboard" className="text-gray-400 hover:text-white flex items-center space-x-1">
-            <Trophy size={14} />
-            <span>WINNERS</span>
-          </Link>
+      <div className="md:hidden border-t border-[#3d2e26] bg-[#241b17] px-4 py-3 flex justify-between items-center text-xs font-mono relative">
+        <Link href="/progress" className="text-gray-400 hover:text-white flex items-center space-x-1 z-10">
+          <Activity size={14} />
+          <span>PROGRESS</span>
+        </Link>
+        
+        {/* Mobile Prize Pool Display Centered */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center space-x-1 bg-amber-950/60 border border-amber-900/50 px-3 py-1 rounded-sm shadow-[0_0_10px_rgba(251,191,36,0.15)]">
+          <Skull size={12} className="text-amber-500" />
+          <span className="text-amber-400 font-bold">{globalPrizePool !== null ? globalPrizePool : "---"} PTS</span>
         </div>
-        {/* Mobile Prize Pool Display */}
-        {globalPrizePool !== null && (
-          <div className="flex items-center space-x-1 text-amber-400">
-            <Skull size={12} />
-            <span className="font-bold">{globalPrizePool} PTS</span>
-          </div>
-        )}
+
+        <Link href="/leaderboard" className="text-gray-400 hover:text-white flex items-center space-x-1 z-10">
+          <Trophy size={14} />
+          <span>WINNERS</span>
+        </Link>
       </div>
     </nav>
   );
