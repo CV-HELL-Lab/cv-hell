@@ -213,35 +213,51 @@ setup_database() {
 
   if [[ "$db_exists" == true ]]; then
     ok "数据库 $DB_NAME 已存在，跳过创建"
-    return
-  fi
-
-  info "创建数据库 $DB_NAME ..."
-
-  if createdb -U "$DB_USER" "$DB_NAME" 2>/dev/null; then
-    ok "数据库创建成功 (createdb -U $DB_USER)"
-  elif createdb "$DB_NAME" 2>/dev/null; then
-    ok "数据库创建成功 (createdb with current user)"
-  elif sudo -u postgres createdb "$DB_NAME" 2>/dev/null; then
-    ok "数据库创建成功 (sudo -u postgres createdb)"
-  elif sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" 2>/dev/null; then
-    ok "数据库创建成功 (sudo -u postgres psql)"
   else
-    warn "无法自动创建数据库"
-    echo ""
-    echo -e "  请手动创建数据库，选择以下任意一种方式："
-    echo -e "    ${BOLD}sudo -u postgres createdb $DB_NAME${NC}"
-    echo -e "    ${BOLD}createdb $DB_NAME${NC}"
-    echo -e "    ${BOLD}sudo -u postgres psql -c \"CREATE DATABASE $DB_NAME;\"${NC}"
-    echo ""
-    ask "创建完成后按回车继续（或 Ctrl+C 退出）: "
-    read -r
+    info "创建数据库 $DB_NAME ..."
+
+    if createdb -U "$DB_USER" "$DB_NAME" 2>/dev/null; then
+      ok "数据库创建成功 (createdb -U $DB_USER)"
+    elif createdb "$DB_NAME" 2>/dev/null; then
+      ok "数据库创建成功 (createdb with current user)"
+    elif sudo -u postgres createdb "$DB_NAME" 2>/dev/null; then
+      ok "数据库创建成功 (sudo -u postgres createdb)"
+    elif sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" 2>/dev/null; then
+      ok "数据库创建成功 (sudo -u postgres psql)"
+    else
+      warn "无法自动创建数据库"
+      echo ""
+      echo -e "  请手动创建数据库，选择以下任意一种方式："
+      echo -e "    ${BOLD}sudo -u postgres createdb $DB_NAME${NC}"
+      echo -e "    ${BOLD}createdb $DB_NAME${NC}"
+      echo -e "    ${BOLD}sudo -u postgres psql -c \"CREATE DATABASE $DB_NAME;\"${NC}"
+      echo ""
+      ask "创建完成后按回车继续（或 Ctrl+C 退出）: "
+      read -r
+    fi
   fi
 
-  # Debian/树莓派: 确保 postgres 用户有密码并授权数据库
-  if [[ "$OS" == "debian" && -n "$DB_PASS" ]]; then
-    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null || true
+  # 始终确保数据库用户密码正确（Debian/树莓派默认用 peer auth，TCP 连接需要密码）
+  if [[ -n "$DB_PASS" ]]; then
+    info "设置数据库用户 $DB_USER 的密码..."
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null && \
+      ok "数据库用户密码已设置" || warn "无法自动设置密码，请手动执行: sudo -u postgres psql -c \"ALTER USER $DB_USER WITH PASSWORD 'your_pass';\""
     sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+  fi
+
+  # 确保 pg_hba.conf 允许密码认证（Debian 默认只有 peer）
+  if [[ "$OS" == "debian" ]]; then
+    local hba_file
+    hba_file=$(sudo -u postgres psql -t -c "SHOW hba_file;" 2>/dev/null | tr -d ' ')
+    if [[ -n "$hba_file" && -f "$hba_file" ]]; then
+      if ! grep -q "host.*all.*all.*127.0.0.1.*md5\|host.*all.*all.*127.0.0.1.*scram" "$hba_file" 2>/dev/null; then
+        info "配置 pg_hba.conf 允许本地密码认证..."
+        sudo bash -c "echo 'host all all 127.0.0.1/32 md5' >> $hba_file"
+        sudo bash -c "echo 'host all all ::1/128 md5' >> $hba_file"
+        sudo systemctl reload postgresql 2>/dev/null || sudo service postgresql reload 2>/dev/null || true
+        ok "pg_hba.conf 已更新"
+      fi
+    fi
   fi
 }
 
