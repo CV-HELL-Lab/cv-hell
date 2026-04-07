@@ -28,35 +28,34 @@ export default function NavBar() {
   return (
     <nav className="border-b border-[#4f3c32] bg-[#17110e] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center space-x-8">
+        <div className="flex justify-between items-center h-16 relative">
+          <div className="flex-1 flex items-center">
             <Link href="/" className="flex items-center space-x-2 text-[var(--color-boss-accent)] hover:opacity-80 transition">
               <Target size={24} strokeWidth={2.5} />
               <span className="font-bold text-xl tracking-wider">CV HELL</span>
             </Link>
-
-            <div className="hidden md:flex space-x-6 text-sm font-medium items-center">
-              <Link href="/progress" className="text-gray-400 hover:text-white flex items-center space-x-1 transition">
-                <Activity size={16} />
-                <span>WORLD PROGRESS</span>
-              </Link>
-              <Link href="/leaderboard" className="text-gray-400 hover:text-white flex items-center space-x-1 transition">
-                <Trophy size={16} />
-                <span>HALL OF WINNERS</span>
-              </Link>
-              
-              {/* Global Prize Pool Display */}
-              {globalPrizePool !== null && (
-                <div className="flex items-center space-x-2 bg-amber-950/40 border border-amber-900/50 px-3 py-1 rounded-sm shadow-[0_0_10px_rgba(251,191,36,0.1)] ml-4">
-                  <Skull size={14} className="text-amber-500" />
-                  <span className="text-gray-400 text-xs tracking-wider">PRIZE POOL:</span>
-                  <span className="text-amber-400 font-bold font-mono">{globalPrizePool} PTS</span>
-                </div>
-              )}
-            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-6 absolute left-1/2 -translate-x-1/2">
+            <Link href="/progress" className="text-gray-400 hover:text-white flex items-center space-x-1 transition text-sm font-medium">
+              <Activity size={16} />
+              <span>WORLD PROGRESS</span>
+            </Link>
+            
+            {/* Global Prize Pool Display Centered */}
+            <div className="flex items-center space-x-2 bg-amber-950/40 border border-amber-900/50 px-4 py-1.5 rounded-sm shadow-[0_0_15px_rgba(251,191,36,0.15)] mx-4">
+              <Skull size={16} className="text-amber-500" />
+              <span className="text-gray-400 text-xs tracking-widest font-bold">PRIZE POOL:</span>
+              <span className="text-amber-400 font-black font-mono text-lg">{globalPrizePool !== null ? globalPrizePool : "---"} <span className="text-sm">PTS</span></span>
+            </div>
+
+            <Link href="/leaderboard" className="text-gray-400 hover:text-white flex items-center space-x-1 transition text-sm font-medium">
+              <Trophy size={16} />
+              <span>HALL OF WINNERS</span>
+            </Link>
+          </div>
+
+          <div className="flex-1 flex items-center justify-end space-x-4">
             {user ? (
               <>
                 <div className="flex flex-col items-end">
