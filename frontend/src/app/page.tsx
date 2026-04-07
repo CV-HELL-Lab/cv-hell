@@ -1,0 +1,99 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import api from "@/lib/api";
+import { ArrowRight, Trophy, Skull } from "lucide-react";
+
+interface BossData {
+  id: string;
+  name: string;
+  slug: string;
+  order_index: number;
+  status: string;
+  specialty: string;
+  defeated_at: string | null;
+  world_first_defeater: string | null;
+  prize_pool: number;
+}
+
+export default function HomePage() {
+  const [boss, setBoss] = useState<BossData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCurrentBoss = async () => {
+      try {
+        const res = await api.get("/boss/current");
+        setBoss(res.data);
+      } catch (err) {
+        console.error("Failed to fetch current boss", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCurrentBoss();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex justify-center items-center">
+        <div className="animate-pulse text-[var(--color-boss-red)] font-mono font-bold tracking-widest">
+          SUMMONING THE BOSS...
+        </div>
+      </div>
+    );
+  }
+
+  if (!boss) {
+    return (
+      <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
+        <Skull size={64} className="text-gray-600 mb-6" />
+        <h1 className="text-4xl font-bold text-white mb-4">Hell is Empty</h1>
+        <p className="text-gray-400 font-mono">No active boss found. The servers are judging you.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[var(--color-boss-red)]/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
+      <div className="max-w-3xl w-full text-center space-y-10 z-10">
+        <div className="space-y-4">
+          <p className="text-[var(--color-boss-red)] font-mono font-bold tracking-[0.2em] text-sm uppercase">
+            Active Global Target
+          </p>
+          <h1 className="text-6xl sm:text-8xl font-black text-white uppercase tracking-tighter drop-shadow-lg">
+            {boss.name}
+          </h1>
+          <p className="text-xl text-gray-300 font-mono max-w-2xl mx-auto border-l-2 border-[var(--color-boss-red)] pl-4 text-left">
+            {boss.specialty}
+          </p>
+        </div>
+
+        <div className="inline-flex flex-col items-center bg-[#111] border border-[#333] px-10 py-6 rounded-sm shadow-xl">
+          <Trophy size={32} className="text-[#fbbf24] mb-3" />
+          <p className="text-gray-400 text-sm font-mono uppercase tracking-widest mb-1">Current Prize Pool</p>
+          <p className="text-4xl font-bold text-white tracking-wider font-mono">
+            {boss.prize_pool} <span className="text-xl text-[var(--color-terminal-green)]">PTS</span>
+          </p>
+        </div>
+
+        <div className="pt-8">
+          <Link
+            href={`/boss/${boss.slug}`}
+            className="inline-flex items-center space-x-3 bg-white text-black font-black uppercase tracking-widest text-xl px-12 py-5 hover:bg-gray-200 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+          >
+            <span>Face the Boss</span>
+            <ArrowRight strokeWidth={3} />
+          </Link>
+          <p className="mt-4 text-sm text-gray-500 font-mono">
+            Upload your CV. Make it shut up.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
