@@ -33,7 +33,7 @@ export default function VictoryPage() {
     return (
       <div className="flex-1 flex flex-col justify-center items-center">
         <h1 className="text-2xl text-gray-500 font-mono">No victory to claim.</h1>
-        <Link href="/" className="mt-4 text-[var(--color-boss-red)] underline underline-offset-4">Return to Reality</Link>
+        <Link href="/" className="mt-4 text-[var(--color-boss-accent)] underline underline-offset-4">Return to Reality</Link>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function VictoryPage() {
         <ReactConfetti
           width={windowDimensions.width}
           height={windowDimensions.height}
-          colors={['#ef4444', '#fbbf24', '#22c55e', '#ffffff']}
+          colors={['#f59e0b', '#fbbf24', '#22c55e', '#ffffff']}
           recycle={false}
           numberOfPieces={800}
         />
@@ -67,7 +67,7 @@ export default function VictoryPage() {
         </div>
 
         {data.world_first ? (
-          <div className="bg-[#111] border border-[#fbbf24] p-8 rounded-sm shadow-[0_0_40px_rgba(251,191,36,0.15)] animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <div className="bg-[#241b17] border border-[#fbbf24] p-8 rounded-sm shadow-[0_0_40px_rgba(251,191,36,0.15)] animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="flex justify-center mb-4">
               <Trophy size={48} className="text-[#fbbf24]" />
             </div>
@@ -77,7 +77,7 @@ export default function VictoryPage() {
             <p className="text-gray-300 font-mono text-sm mb-6">
               You are the reason everyone else gets to fight the next boss.
             </p>
-            <div className="inline-block bg-[#0a0a0a] border border-[#333] px-8 py-4">
+            <div className="inline-block bg-[#17110e] border border-[#4f3c32] px-8 py-4">
               <span className="text-gray-500 font-mono text-xs uppercase tracking-widest block mb-1">Prize Pool Claimed</span>
               <span className="text-4xl font-bold text-white tracking-wider font-mono">
                 +{data.points_won} <span className="text-[var(--color-terminal-green)] text-xl">PTS</span>
@@ -85,7 +85,7 @@ export default function VictoryPage() {
             </div>
           </div>
         ) : (
-          <div className="bg-[#111] border border-[#333] p-8 rounded-sm">
+          <div className="bg-[#241b17] border border-[#4f3c32] p-8 rounded-sm">
             <h2 className="text-2xl font-bold text-white uppercase tracking-widest mb-2">
               Reluctant Approval
             </h2>
@@ -105,7 +105,7 @@ export default function VictoryPage() {
           </Link>
           <Link
             href="/leaderboard"
-            className="inline-flex items-center space-x-2 bg-[#111] border border-[#333] text-white font-bold uppercase tracking-widest px-8 py-4 hover:bg-[#222] transition-colors w-full sm:w-auto justify-center"
+            className="inline-flex items-center space-x-2 bg-[#241b17] border border-[#4f3c32] text-white font-bold uppercase tracking-widest px-8 py-4 hover:bg-[#3d2e26] transition-colors w-full sm:w-auto justify-center"
           >
             <Trophy size={18} />
             <span>Leaderboard</span>

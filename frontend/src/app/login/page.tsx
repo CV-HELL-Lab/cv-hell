@@ -48,12 +48,12 @@ export default function LoginPage() {
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center px-4">
-      <div className="w-full max-w-md bg-[#111] border border-[#333] p-8 rounded-sm shadow-2xl">
+      <div className="w-full max-w-md bg-[#241b17] border border-[#4f3c32] p-8 rounded-sm shadow-2xl">
         <h2 className="text-3xl font-bold mb-2 text-white uppercase tracking-wide">Enter the Hell</h2>
         <p className="text-gray-400 mb-8 font-mono text-sm">Log in to face the current boss.</p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-950/30 border border-red-500/50 text-red-500 flex items-start space-x-3 rounded-sm">
+          <div className="mb-6 p-4 bg-amber-950/30 border border-amber-500/50 text-amber-500 flex items-start space-x-3 rounded-sm">
             <AlertCircle size={20} className="mt-0.5 shrink-0" />
             <span className="text-sm font-mono leading-tight">{error}</span>
           </div>
@@ -67,7 +67,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#333] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-red)] transition-colors font-mono text-sm"
+              className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] transition-colors font-mono text-sm"
               placeholder="user@example.com"
             />
           </div>
@@ -79,7 +79,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#333] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-red)] transition-colors font-mono text-sm"
+              className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] transition-colors font-mono text-sm"
               placeholder="••••••••"
             />
           </div>
@@ -87,16 +87,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black font-bold uppercase tracking-widest py-4 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#111] disabled:opacity-50 transition-all active:scale-[0.98]"
+            className="w-full bg-white text-black font-bold uppercase tracking-widest py-4 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#241b17] disabled:opacity-50 transition-all active:scale-[0.98]"
           >
             {loading ? "Authenticating..." : "Submit"}
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-[#222] pt-6">
+        <div className="mt-8 text-center border-t border-[#3d2e26] pt-6">
           <p className="text-gray-400 text-sm font-mono">
             New victim?{" "}
-            <Link href="/register" className="text-white hover:text-[var(--color-boss-red)] underline underline-offset-4 transition-colors">
+            <Link href="/register" className="text-white hover:text-[var(--color-boss-accent)] underline underline-offset-4 transition-colors">
               Register here
             </Link>
           </p>

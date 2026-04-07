@@ -8,11 +8,11 @@ export default function NavBar() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="border-b border-[#333] bg-[#0a0a0a] sticky top-0 z-50">
+    <nav className="border-b border-[#4f3c32] bg-[#17110e] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="flex items-center space-x-2 text-[var(--color-boss-red)] hover:opacity-80 transition">
+            <Link href="/" className="flex items-center space-x-2 text-[var(--color-boss-accent)] hover:opacity-80 transition">
               <Target size={24} strokeWidth={2.5} />
               <span className="font-bold text-xl tracking-wider">CV HELL</span>
             </Link>
@@ -46,7 +46,7 @@ export default function NavBar() {
                     logout();
                     window.location.href = "/login";
                   }}
-                  className="p-2 text-gray-500 hover:text-white hover:bg-[#222] rounded-md transition"
+                  className="p-2 text-gray-500 hover:text-white hover:bg-[#3d2e26] rounded-md transition"
                   title="Logout"
                 >
                   <LogOut size={18} />
@@ -57,7 +57,7 @@ export default function NavBar() {
                 <Link href="/login" className="text-gray-300 hover:text-white transition">
                   LOGIN
                 </Link>
-                <Link href="/register" className="text-[var(--color-boss-red)] hover:text-red-400 transition">
+                <Link href="/register" className="text-[var(--color-boss-accent)] hover:text-amber-400 transition">
                   REGISTER
                 </Link>
               </div>
@@ -67,7 +67,7 @@ export default function NavBar() {
       </div>
       
       {/* Mobile nav links */}
-      <div className="md:hidden border-t border-[#222] bg-[#111] px-4 py-2 flex justify-between text-xs font-mono">
+      <div className="md:hidden border-t border-[#3d2e26] bg-[#241b17] px-4 py-2 flex justify-between text-xs font-mono">
         <Link href="/progress" className="text-gray-400 hover:text-white flex items-center space-x-1">
           <Activity size={14} />
           <span>PROGRESS</span>

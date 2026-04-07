@@ -51,12 +51,12 @@ export default function RegisterPage() {
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
-      <div className="w-full max-w-md bg-[#111] border border-red-900/30 p-8 rounded-sm shadow-[0_0_40px_rgba(239,68,68,0.05)]">
+      <div className="w-full max-w-md bg-[#241b17] border border-amber-900/30 p-8 rounded-sm shadow-[0_0_40px_rgba(239,68,68,0.05)]">
         <h2 className="text-3xl font-bold mb-2 text-white uppercase tracking-wide">Sign Your Soul</h2>
         <p className="text-gray-400 mb-8 font-mono text-sm">Create an account. Get 100 points. Lose them all.</p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-950/30 border border-red-500/50 text-red-500 flex items-start space-x-3 rounded-sm">
+          <div className="mb-6 p-4 bg-amber-950/30 border border-amber-500/50 text-amber-500 flex items-start space-x-3 rounded-sm">
             <AlertCircle size={20} className="mt-0.5 shrink-0" />
             <span className="text-sm font-mono leading-tight">{error}</span>
           </div>
@@ -70,7 +70,7 @@ export default function RegisterPage() {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#333] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-red)] transition-colors font-mono text-sm"
+              className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] transition-colors font-mono text-sm"
               placeholder="Challenger_01"
               maxLength={30}
             />
@@ -83,7 +83,7 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#333] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-red)] transition-colors font-mono text-sm"
+              className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] transition-colors font-mono text-sm"
               placeholder="user@example.com"
             />
           </div>
@@ -95,7 +95,7 @@ export default function RegisterPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#333] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-red)] transition-colors font-mono text-sm"
+              className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] transition-colors font-mono text-sm"
               placeholder="Min 8 characters"
             />
           </div>
@@ -104,17 +104,17 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[var(--color-boss-red)] text-white font-bold uppercase tracking-widest py-4 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#111] disabled:opacity-50 transition-all active:scale-[0.98]"
+              className="w-full bg-[var(--color-boss-accent)] text-white font-bold uppercase tracking-widest py-4 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-[#241b17] disabled:opacity-50 transition-all active:scale-[0.98]"
             >
               {loading ? "Registering..." : "Enter"}
             </button>
           </div>
         </form>
 
-        <div className="mt-8 text-center border-t border-[#222] pt-6">
+        <div className="mt-8 text-center border-t border-[#3d2e26] pt-6">
           <p className="text-gray-400 text-sm font-mono">
             Already doomed?{" "}
-            <Link href="/login" className="text-white hover:text-[var(--color-boss-red)] underline underline-offset-4 transition-colors">
+            <Link href="/login" className="text-white hover:text-[var(--color-boss-accent)] underline underline-offset-4 transition-colors">
               Login here
             </Link>
           </p>

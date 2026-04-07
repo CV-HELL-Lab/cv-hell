@@ -58,7 +58,7 @@ export default function LeaderboardPage() {
               className={`flex items-center space-x-2 px-6 py-3 font-bold uppercase tracking-widest text-sm transition-colors ${
                 isActive 
                   ? "bg-white text-black" 
-                  : "bg-[#111] border border-[#333] text-gray-400 hover:text-white hover:bg-[#222]"
+                  : "bg-[#241b17] border border-[#4f3c32] text-gray-400 hover:text-white hover:bg-[#3d2e26]"
               }`}
             >
               <Icon size={16} />
@@ -68,9 +68,9 @@ export default function LeaderboardPage() {
         })}
       </div>
 
-      <div className="bg-[#111] border border-[#333] rounded-sm overflow-hidden flex-1 min-h-[400px] relative">
+      <div className="bg-[#241b17] border border-[#4f3c32] rounded-sm overflow-hidden flex-1 min-h-[400px] relative">
         {loading ? (
-          <div className="absolute inset-0 flex justify-center items-center bg-[#111]/50 backdrop-blur-sm z-10">
+          <div className="absolute inset-0 flex justify-center items-center bg-[#241b17]/50 backdrop-blur-sm z-10">
             <Loader2 className="animate-spin text-gray-500" size={32} />
           </div>
         ) : entries.length === 0 ? (
@@ -82,7 +82,7 @@ export default function LeaderboardPage() {
           <div className="overflow-x-auto h-full custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#1a1a1a] border-b border-[#333] text-gray-500 font-mono text-xs uppercase tracking-widest">
+                <tr className="bg-[#30241e] border-b border-[#4f3c32] text-gray-500 font-mono text-xs uppercase tracking-widest">
                   <th className="p-4 font-normal">Rank</th>
                   <th className="p-4 font-normal">Challenger</th>
                   <th className="p-4 font-normal">Boss Defeated</th>
@@ -90,7 +90,7 @@ export default function LeaderboardPage() {
                   <th className="p-4 font-normal text-right">Date Achieved</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#222]">
+              <tbody className="divide-y divide-[#3d2e26]">
                 {entries.map((entry, idx) => (
                   <tr key={idx} className="hover:bg-[#161616] transition-colors group">
                     <td className="p-4 font-mono text-gray-500">
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
                       {entry.user_handle}
                     </td>
                     <td className="p-4">
-                      <span className="inline-block px-2 py-1 bg-red-950/30 text-[var(--color-boss-red)] font-mono text-xs uppercase border border-red-900/30">
+                      <span className="inline-block px-2 py-1 bg-amber-950/30 text-[var(--color-boss-accent)] font-mono text-xs uppercase border border-amber-900/30">
                         {entry.boss_name}
                       </span>
                     </td>

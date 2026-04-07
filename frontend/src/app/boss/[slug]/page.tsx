@@ -95,7 +95,7 @@ export default function BossIntroPage({ params }: { params: Promise<{ slug: stri
   };
 
   if (loadingBoss) {
-    return <div className="flex-1 flex justify-center items-center"><Loader2 className="animate-spin text-[var(--color-boss-red)]" size={32} /></div>;
+    return <div className="flex-1 flex justify-center items-center"><Loader2 className="animate-spin text-[var(--color-boss-accent)]" size={32} /></div>;
   }
 
   if (!boss) return null;
@@ -109,19 +109,19 @@ export default function BossIntroPage({ params }: { params: Promise<{ slug: stri
             <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-2">
               {boss.name}
             </h1>
-            <p className="text-xl text-[var(--color-boss-red)] font-mono font-bold uppercase tracking-widest border-b border-[#333] pb-4">
+            <p className="text-xl text-[var(--color-boss-accent)] font-mono font-bold uppercase tracking-widest border-b border-[#4f3c32] pb-4">
               Current Target
             </p>
           </div>
           
-          <div className="bg-[#111] border-l-4 border-gray-600 p-6 rounded-sm">
+          <div className="bg-[#241b17] border-l-4 border-gray-600 p-6 rounded-sm">
             <h3 className="text-gray-500 font-mono text-xs uppercase tracking-widest mb-2">Specialty</h3>
             <p className="text-gray-300 font-mono text-sm">
               {boss.specialty}
             </p>
           </div>
 
-          <div className="bg-[#111] border-l-4 border-[#fbbf24] p-6 rounded-sm">
+          <div className="bg-[#241b17] border-l-4 border-[#fbbf24] p-6 rounded-sm">
             <h3 className="text-gray-500 font-mono text-xs uppercase tracking-widest mb-2">Prize Pool</h3>
             <p className="text-3xl text-white font-bold tracking-wider font-mono">
               {boss.prize_pool} <span className="text-sm text-[var(--color-terminal-green)]">PTS</span>
@@ -131,15 +131,15 @@ export default function BossIntroPage({ params }: { params: Promise<{ slug: stri
         </div>
 
         {/* Upload Form */}
-        <div className="bg-[#111] border border-[#333] p-8 rounded-sm shadow-2xl flex flex-col justify-center">
+        <div className="bg-[#241b17] border border-[#4f3c32] p-8 rounded-sm shadow-2xl flex flex-col justify-center">
           <h2 className="text-2xl font-bold text-white uppercase tracking-wide mb-2">Enter the Arena</h2>
           <p className="text-gray-400 font-mono text-xs mb-8">
             Upload your CV. The boss will rip it apart. <br/>
-            Cost: <span className="text-[var(--color-boss-red)] font-bold">10 PTS</span> per submission.
+            Cost: <span className="text-[var(--color-boss-accent)] font-bold">10 PTS</span> per submission.
           </p>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-950/30 border border-red-500/50 text-red-500 flex items-start space-x-3 rounded-sm">
+            <div className="mb-6 p-4 bg-amber-950/30 border border-amber-500/50 text-amber-500 flex items-start space-x-3 rounded-sm">
               <AlertCircle size={20} className="mt-0.5 shrink-0" />
               <span className="text-xs font-mono leading-tight">{error}</span>
             </div>
@@ -157,7 +157,7 @@ export default function BossIntroPage({ params }: { params: Promise<{ slug: stri
               <label
                 htmlFor="resume-upload"
                 className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-sm cursor-pointer transition-colors ${
-                  file ? "border-[var(--color-terminal-green)] bg-green-950/10" : "border-[#444] hover:border-[var(--color-boss-red)] hover:bg-[#1a1a1a]"
+                  file ? "border-[var(--color-terminal-green)] bg-green-950/10" : "border-[#664e42] hover:border-[var(--color-boss-accent)] hover:bg-[#30241e]"
                 }`}
               >
                 {file ? (
@@ -185,7 +185,7 @@ export default function BossIntroPage({ params }: { params: Promise<{ slug: stri
             <button
               type="submit"
               disabled={!file || uploading}
-              className="w-full bg-[var(--color-boss-red)] text-white font-bold uppercase tracking-widest py-4 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#111] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center space-x-2"
+              className="w-full bg-[var(--color-boss-accent)] text-white font-bold uppercase tracking-widest py-4 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-[#241b17] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center space-x-2"
             >
               {uploading ? (
                 <>

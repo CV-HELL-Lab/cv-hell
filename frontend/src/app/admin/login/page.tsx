@@ -30,8 +30,8 @@ export default function AdminLogin() {
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center px-4 bg-black">
-      <div className="w-full max-w-sm border border-[#333] p-8 rounded-sm bg-[#0a0a0a]">
-        <div className="flex items-center space-x-3 mb-6 border-b border-[#333] pb-4">
+      <div className="w-full max-w-sm border border-[#4f3c32] p-8 rounded-sm bg-[#17110e]">
+        <div className="flex items-center space-x-3 mb-6 border-b border-[#4f3c32] pb-4">
           <Terminal size={24} className="text-gray-400" />
           <h2 className="text-xl font-mono font-bold text-white uppercase tracking-widest">
             Operator Auth
@@ -39,7 +39,7 @@ export default function AdminLogin() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-950/20 border border-red-900/50 text-red-500 flex items-start space-x-3">
+          <div className="mb-6 p-4 bg-amber-950/20 border border-amber-900/50 text-amber-500 flex items-start space-x-3">
             <AlertCircle size={18} className="mt-0.5 shrink-0" />
             <span className="text-xs font-mono">{error}</span>
           </div>
@@ -53,7 +53,7 @@ export default function AdminLogin() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-[#111] border border-[#333] px-4 py-2 text-white focus:outline-none focus:border-white transition-colors font-mono text-sm"
+              className="w-full bg-[#241b17] border border-[#4f3c32] px-4 py-2 text-white focus:outline-none focus:border-white transition-colors font-mono text-sm"
               placeholder="admin"
             />
           </div>
@@ -65,7 +65,7 @@ export default function AdminLogin() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#111] border border-[#333] px-4 py-2 text-white focus:outline-none focus:border-white transition-colors font-mono text-sm"
+              className="w-full bg-[#241b17] border border-[#4f3c32] px-4 py-2 text-white focus:outline-none focus:border-white transition-colors font-mono text-sm"
               placeholder="••••••••"
             />
           </div>

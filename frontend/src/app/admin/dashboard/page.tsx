@@ -48,19 +48,19 @@ export default function AdminDashboard() {
   }, []);
 
   if (loading) return <div className="p-8 font-mono text-gray-500">Loading telemetry...</div>;
-  if (error) return <div className="p-8 font-mono text-red-500">{error}</div>;
+  if (error) return <div className="p-8 font-mono text-amber-500">{error}</div>;
   if (!stats) return null;
 
   return (
     <div className="flex-1 p-8 bg-[#050505]">
-      <div className="flex justify-between items-center mb-8 border-b border-[#333] pb-4">
+      <div className="flex justify-between items-center mb-8 border-b border-[#4f3c32] pb-4">
         <div>
           <h1 className="text-2xl font-mono font-bold text-white uppercase tracking-widest flex items-center">
-            <ShieldAlert className="mr-3 text-red-500" /> Platform Telemetry
+            <ShieldAlert className="mr-3 text-amber-500" /> Platform Telemetry
           </h1>
         </div>
         <div className="flex space-x-4">
-          <button onClick={fetchStats} className="p-2 border border-[#333] text-gray-400 hover:text-white rounded-sm">
+          <button onClick={fetchStats} className="p-2 border border-[#4f3c32] text-gray-400 hover:text-white rounded-sm">
             <RotateCcw size={16} />
           </button>
           <button 
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
               localStorage.removeItem("cvhell_admin_token");
               router.push("/admin/login");
             }}
-            className="px-4 py-2 border border-red-900 text-red-500 font-mono text-xs uppercase hover:bg-red-950/30"
+            className="px-4 py-2 border border-amber-900 text-amber-500 font-mono text-xs uppercase hover:bg-amber-950/30"
           >
             Terminate Session
           </button>
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <div className="bg-[#111] border border-[#222] p-6">
+        <div className="bg-[#241b17] border border-[#3d2e26] p-6">
           <div className="flex items-center space-x-3 mb-4">
             <Activity className="text-blue-500" size={20} />
             <h3 className="font-mono text-xs text-gray-500 uppercase tracking-widest">Active Boss</h3>
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
           <p className="text-xl font-bold text-white">{stats.current_boss ? stats.current_boss.name : "None"}</p>
         </div>
 
-        <div className="bg-[#111] border border-[#222] p-6">
+        <div className="bg-[#241b17] border border-[#3d2e26] p-6">
           <div className="flex items-center space-x-3 mb-4">
             <Users className="text-purple-500" size={20} />
             <h3 className="font-mono text-xs text-gray-500 uppercase tracking-widest">Total Souls</h3>
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
           <p className="text-3xl font-mono font-bold text-white">{stats.total_users}</p>
         </div>
 
-        <div className="bg-[#111] border border-[#222] p-6">
+        <div className="bg-[#241b17] border border-[#3d2e26] p-6">
           <div className="flex items-center space-x-3 mb-4">
             <FileText className="text-yellow-500" size={20} />
             <h3 className="font-mono text-xs text-gray-500 uppercase tracking-widest">Submissions</h3>
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
           <p className="text-3xl font-mono font-bold text-white">{stats.total_submissions}</p>
         </div>
 
-        <div className="bg-[#111] border border-[#222] p-6">
+        <div className="bg-[#241b17] border border-[#3d2e26] p-6">
           <div className="flex items-center space-x-3 mb-4">
             <CheckCircle className="text-green-500" size={20} />
             <h3 className="font-mono text-xs text-gray-500 uppercase tracking-widest">Approvals</h3>
@@ -112,18 +112,18 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-lg font-mono font-bold text-gray-300 uppercase tracking-widest mb-6">World First Kills</h2>
         {stats.world_first_defeats.length === 0 ? (
-          <p className="text-gray-600 font-mono text-sm border border-[#222] p-6 bg-[#111]">No bosses defeated yet.</p>
+          <p className="text-gray-600 font-mono text-sm border border-[#3d2e26] p-6 bg-[#241b17]">No bosses defeated yet.</p>
         ) : (
-          <div className="border border-[#222] bg-[#111] rounded-sm overflow-hidden">
+          <div className="border border-[#3d2e26] bg-[#241b17] rounded-sm overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-[#1a1a1a] border-b border-[#333]">
+              <thead className="bg-[#30241e] border-b border-[#4f3c32]">
                 <tr>
                   <th className="p-4 font-mono text-xs text-gray-500 uppercase tracking-widest">Boss</th>
                   <th className="p-4 font-mono text-xs text-gray-500 uppercase tracking-widest">Victur</th>
                   <th className="p-4 font-mono text-xs text-gray-500 uppercase tracking-widest text-right">Timestamp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#222]">
+              <tbody className="divide-y divide-[#3d2e26]">
                 {stats.world_first_defeats.map((defeat, idx) => (
                   <tr key={idx}>
                     <td className="p-4 font-bold text-white">{defeat.boss_name}</td>

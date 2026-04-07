@@ -37,7 +37,7 @@ export default function ProgressPage() {
 
   return (
     <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-12">
-      <div className="mb-12 border-b border-[#333] pb-6">
+      <div className="mb-12 border-b border-[#4f3c32] pb-6">
         <h1 className="text-4xl font-black text-white uppercase tracking-wider mb-2">World Progress</h1>
         <p className="text-gray-400 font-mono">The global roadmap of destruction. Defeat the current boss to unlock the next.</p>
       </div>
@@ -45,11 +45,11 @@ export default function ProgressPage() {
       {loading ? (
         <div className="animate-pulse space-y-8">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 bg-[#111] border border-[#222] rounded-sm" />
+            <div key={i} className="h-32 bg-[#241b17] border border-[#3d2e26] rounded-sm" />
           ))}
         </div>
       ) : (
-        <div className="relative border-l-2 border-[#333] ml-4 space-y-12">
+        <div className="relative border-l-2 border-[#4f3c32] ml-4 space-y-12">
           {bosses.map((boss, idx) => {
             const isDefeated = boss.status === "defeated";
             const isCurrent = boss.status === "current";
@@ -57,16 +57,16 @@ export default function ProgressPage() {
 
             let Icon = Skull;
             let iconColor = "text-gray-500";
-            let borderColor = "border-[#333]";
-            let bgClass = "bg-[#111]";
+            let borderColor = "border-[#4f3c32]";
+            let bgClass = "bg-[#241b17]";
             
             if (isDefeated) {
               Icon = CheckCircle2;
               iconColor = "text-[var(--color-terminal-green)]";
             } else if (isCurrent) {
               Icon = Skull;
-              iconColor = "text-[var(--color-boss-red)]";
-              borderColor = "border-[var(--color-boss-red)]";
+              iconColor = "text-[var(--color-boss-accent)]";
+              borderColor = "border-[var(--color-boss-accent)]";
               bgClass = "bg-[#1a0f0f]";
             } else if (isLocked) {
               Icon = Lock;
@@ -75,7 +75,7 @@ export default function ProgressPage() {
             return (
               <div key={boss.id} className="relative pl-10">
                 {/* Timeline dot */}
-                <div className={`absolute -left-[17px] top-4 w-8 h-8 rounded-full bg-[#0a0a0a] border-2 ${borderColor} flex items-center justify-center`}>
+                <div className={`absolute -left-[17px] top-4 w-8 h-8 rounded-full bg-[#17110e] border-2 ${borderColor} flex items-center justify-center`}>
                   <Icon size={14} className={iconColor} />
                 </div>
 
@@ -88,7 +88,7 @@ export default function ProgressPage() {
                           {boss.name}
                         </h2>
                         {isCurrent && (
-                          <span className="bg-[var(--color-boss-red)] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-widest animate-pulse">
+                          <span className="bg-[var(--color-boss-accent)] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-widest animate-pulse">
                             Active
                           </span>
                         )}
