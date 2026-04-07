@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Skull, FileText, Users, Trophy, LogOut } from "lucide-react";
+import { LayoutDashboard, Skull, FileText, Users, Trophy, LogOut, Cpu } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "LLM Configs", href: "/admin/llm-configs", icon: Cpu },
     { label: "Bosses", href: "/admin/bosses", icon: Skull },
     { label: "Submissions", href: "/admin/submissions", icon: FileText },
     { label: "Users", href: "/admin/users", icon: Users },

@@ -46,7 +46,7 @@ def seed():
             db.flush()
 
             if status == "current":
-                pool = PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=0)
+                pool = PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=100)
                 db.add(pool)
 
             print(f"Seeded: {boss.name} [{status}]")

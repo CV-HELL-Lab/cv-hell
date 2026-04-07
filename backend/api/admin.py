@@ -308,7 +308,7 @@ def create_boss(body: BossCreateRequest, db: Session = Depends(get_db), _: str =
     if body.status == "current":
         db.query(Boss).filter(Boss.slug != body.slug, Boss.status == "current").update({"status": "unlocked"})
         db.flush()
-        pool = PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=0)
+        pool = PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=100)
         db.add(pool)
 
     db.commit()
@@ -354,7 +354,7 @@ def activate_boss(slug: str, db: Session = Depends(get_db), _: str = Depends(get
     # Ensure prize pool exists
     pool = db.query(PrizePool).filter(PrizePool.boss_id == boss.id).first()
     if not pool:
-        db.add(PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=0))
+        db.add(PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=100))
     db.commit()
     return {"ok": True}
 

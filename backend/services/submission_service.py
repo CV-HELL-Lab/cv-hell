@@ -136,6 +136,7 @@ def upload_resume(
         "submission_id": str(submission.id),
         "version_number": version_number,
         "extracted_text_preview": extracted_text[:300] if extracted_text else "",
+        "extracted_text": extracted_text or "",
         "source_type": source_type,
     }
 
@@ -181,7 +182,7 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
 
     prize_pool = db.query(PrizePool).filter(PrizePool.boss_id == boss_id).with_for_update().first()
     if not prize_pool:
-        prize_pool = PrizePool(id=uuid.uuid4(), boss_id=boss_id, total_points=0)
+        prize_pool = PrizePool(id=uuid.uuid4(), boss_id=boss_id, total_points=100)
         db.add(prize_pool)
 
     prize_pool.total_points += cost
@@ -311,7 +312,7 @@ def _attempt_first_kill_settlement(
         # Only create PrizePool if one does not already exist for next boss
         existing_pool = db.query(PrizePool).filter(PrizePool.boss_id == next_boss.id).first()
         if not existing_pool:
-            next_pool = PrizePool(id=uuid.uuid4(), boss_id=next_boss.id, total_points=0)
+            next_pool = PrizePool(id=uuid.uuid4(), boss_id=next_boss.id, total_points=100)
             db.add(next_pool)
         elif existing_pool.settled:
             # Reset a previously settled pool for this boss (e.g. after admin reset)

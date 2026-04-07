@@ -210,6 +210,38 @@ def get_leaderboard(
     raise HTTPException(status_code=400, detail="Unsupported leaderboard type. Use: first_defeaters | fastest_clears | fewest_attempts")
 
 
+@router.get("/submission/{submission_id}")
+def get_submission(
+    submission_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    s = db.query(Submission).filter(Submission.id == submission_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if s.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    r = s.boss_response
+    return {
+        "submission_id": str(s.id),
+        "boss_id": str(s.boss_id),
+        "version_number": s.version_number,
+        "extracted_text": s.extracted_text,
+        "source_type": s.source_type,
+        "created_at": s.created_at.isoformat(),
+        "boss_response": {
+            "roast_opening": r.roast_opening,
+            "why_it_fails": r.why_it_fails,
+            "top_issues": json.loads(r.top_issues_json),
+            "fix_direction": r.fix_direction,
+            "mood": r.mood,
+            "mood_level": r.mood_level,
+            "approved": r.approved,
+            "approved_phrase": r.approved_phrase,
+        } if r else None,
+    }
+
 @router.get("/submissions/{user_id}")
 def get_submissions(
     user_id: uuid.UUID,

@@ -32,7 +32,10 @@ export default function HomePage() {
         setLoading(false);
       }
     };
+    
     fetchCurrentBoss();
+    const intervalId = setInterval(fetchCurrentBoss, 3000);
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) {

@@ -42,7 +42,10 @@ export default function BossIntroPage({ params }: { params: Promise<{ slug: stri
         setLoadingBoss(false);
       }
     };
+
     fetchBoss();
+    const intervalId = setInterval(fetchBoss, 3000);
+    return () => clearInterval(intervalId);
   }, [slug, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
