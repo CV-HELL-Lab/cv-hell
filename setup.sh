@@ -78,14 +78,24 @@ configure() {
   read -rs DB_PASS
   echo ""
 
-  # 端口
-  ask "后端端口 [默认: $DEFAULT_BACKEND_PORT]: "
-  read -r BACKEND_PORT
-  BACKEND_PORT="${BACKEND_PORT:-$DEFAULT_BACKEND_PORT}"
+  # 端口（必须 1024-65535）
+  while true; do
+    ask "后端端口 [默认: $DEFAULT_BACKEND_PORT]: "
+    read -r BACKEND_PORT
+    BACKEND_PORT="${BACKEND_PORT:-$DEFAULT_BACKEND_PORT}"
+    BACKEND_PORT=$((10#$BACKEND_PORT))
+    if [[ "$BACKEND_PORT" -ge 1024 && "$BACKEND_PORT" -le 65535 ]]; then break; fi
+    warn "端口必须在 1024-65535 之间，请重新输入"
+  done
 
-  ask "前端端口 [默认: $DEFAULT_FRONTEND_PORT]: "
-  read -r FRONTEND_PORT
-  FRONTEND_PORT="${FRONTEND_PORT:-$DEFAULT_FRONTEND_PORT}"
+  while true; do
+    ask "前端端口 [默认: $DEFAULT_FRONTEND_PORT]: "
+    read -r FRONTEND_PORT
+    FRONTEND_PORT="${FRONTEND_PORT:-$DEFAULT_FRONTEND_PORT}"
+    FRONTEND_PORT=$((10#$FRONTEND_PORT))
+    if [[ "$FRONTEND_PORT" -ge 1024 && "$FRONTEND_PORT" -le 65535 ]]; then break; fi
+    warn "端口必须在 1024-65535 之间，请重新输入"
+  done
 
   # Admin 密码
   ask "Admin 面板密码 [默认: $DEFAULT_ADMIN_PASSWORD]: "
@@ -453,52 +463,107 @@ trap "kill \$BACKEND_PID \$FRONTEND_PID 2>/dev/null; exit" INT TERM
 wait
 STARTEOF
   else
-    cat > "$PROJECT_DIR/start.sh" <<STARTEOF
+    cat > "$PROJECT_DIR/start.sh" <<'STARTEOF'
 #!/bin/bash
 set -e
-echo ""
-echo "═══════════════════════════════════════"
-echo "  CV HELL — 生产模式启动"
-echo "═══════════════════════════════════════"
-echo ""
 
-# 检测 CPU 核心数来决定 worker 数量
-WORKERS=\$(nproc 2>/dev/null || echo 2)
-if [ "\$WORKERS" -gt 4 ]; then WORKERS=4; fi
-if [ "\$WORKERS" -lt 1 ]; then WORKERS=1; fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-echo "[1/2] 启动后端 (端口 $BACKEND_PORT, \$WORKERS workers)..."
-cd backend
-source venv/bin/activate
-uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT --workers \$WORKERS &
-BACKEND_PID=\$!
-cd ..
+BACKEND_PORT=PLACEHOLDER_BACKEND_PORT
+FRONTEND_PORT=PLACEHOLDER_FRONTEND_PORT
+PID_FILE="$SCRIPT_DIR/.cvhell.pids"
 
-sleep 2
+stop_services() {
+  if [[ -f "$PID_FILE" ]]; then
+    echo "[INFO] 停止服务..."
+    while read -r pid; do
+      kill "$pid" 2>/dev/null && echo "  已停止 PID $pid" || true
+    done < "$PID_FILE"
+    rm -f "$PID_FILE"
+    echo "[OK] 服务已停止"
+  else
+    echo "[INFO] 没有运行中的服务"
+  fi
+}
 
-# 启动前端
-echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
-cd frontend
-npx next start -p $FRONTEND_PORT &
-FRONTEND_PID=\$!
-cd ..
+start_services() {
+  stop_services 2>/dev/null
 
-echo ""
-echo "═══════════════════════════════════════"
-echo "  CV HELL 生产环境已启动!"
-echo "  前端:   http://localhost:$FRONTEND_PORT"
-echo "  后端:   http://localhost:$BACKEND_PORT"
-echo "  Admin:  http://localhost:$FRONTEND_PORT/admin"
-echo ""
-echo "  Admin 登录 — 用户名: admin"
-echo "═══════════════════════════════════════"
-echo ""
-echo "按 Ctrl+C 停止所有服务"
+  echo ""
+  echo "═══════════════════════════════════════"
+  echo "  CV HELL — 生产模式启动"
+  echo "═══════════════════════════════════════"
+  echo ""
 
-trap "kill \$BACKEND_PID \$FRONTEND_PID 2>/dev/null; exit" INT TERM
-wait
+  WORKERS=$(nproc 2>/dev/null || echo 2)
+  if [ "$WORKERS" -gt 4 ]; then WORKERS=4; fi
+  if [ "$WORKERS" -lt 1 ]; then WORKERS=1; fi
+
+  echo "[1/2] 启动后端 (端口 $BACKEND_PORT, $WORKERS workers)..."
+  cd backend
+  source venv/bin/activate
+  nohup uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT --workers $WORKERS > ../logs/backend.log 2>&1 &
+  echo $! >> "$PID_FILE"
+  cd ..
+
+  sleep 2
+
+  echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
+  cd frontend
+  nohup npx next start -p $FRONTEND_PORT > ../logs/frontend.log 2>&1 &
+  echo $! >> "$PID_FILE"
+  cd ..
+
+  echo ""
+  echo "═══════════════════════════════════════"
+  echo "  CV HELL 生产环境已启动!"
+  echo "  前端:   http://localhost:$FRONTEND_PORT"
+  echo "  后端:   http://localhost:$BACKEND_PORT"
+  echo "  Admin:  http://localhost:$FRONTEND_PORT/admin"
+  echo ""
+  echo "  Admin 登录 — 用户名: admin"
+  echo "═══════════════════════════════════════"
+  echo ""
+  echo "  日志: logs/backend.log, logs/frontend.log"
+  echo "  停止: ./start.sh stop"
+  echo "  状态: ./start.sh status"
+  echo ""
+}
+
+status_services() {
+  if [[ -f "$PID_FILE" ]]; then
+    echo "CV HELL 服务状态:"
+    local running=0
+    while read -r pid; do
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "  PID $pid — 运行中"
+        running=$((running + 1))
+      else
+        echo "  PID $pid — 已停止"
+      fi
+    done < "$PID_FILE"
+    echo "  运行中: $running 个进程"
+  else
+    echo "CV HELL 未运行"
+  fi
+}
+
+mkdir -p logs
+
+case "${1:-start}" in
+  start)   start_services ;;
+  stop)    stop_services ;;
+  restart) stop_services; sleep 1; start_services ;;
+  status)  status_services ;;
+  *)       echo "用法: $0 {start|stop|restart|status}" ;;
+esac
 STARTEOF
   fi
+
+  # 替换端口占位符
+  sed -i "s/PLACEHOLDER_BACKEND_PORT/$BACKEND_PORT/g" "$PROJECT_DIR/start.sh"
+  sed -i "s/PLACEHOLDER_FRONTEND_PORT/$FRONTEND_PORT/g" "$PROJECT_DIR/start.sh"
 
   chmod +x "$PROJECT_DIR/start.sh"
   ok "启动脚本已生成: $PROJECT_DIR/start.sh"
