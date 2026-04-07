@@ -273,14 +273,21 @@ setup_backend() {
   info "安装 Python 依赖（ARM 设备上可能需要几分钟编译）..."
 
   # 树莓派默认 pip.conf 配置了 piwheels.org，经常超时
-  # 临时备份并禁用系统 pip.conf，强制使用 PyPI
-  if [[ -f /etc/pip.conf ]] && grep -q "piwheels" /etc/pip.conf 2>/dev/null; then
-    warn "检测到 piwheels 配置，临时禁用以避免超时"
+  # 临时备份并禁用系统 pip.conf 和用户 pip.conf
+  RESTORE_PIP_CONF=false
+  RESTORE_USER_PIP_CONF=false
+  if [[ -f /etc/pip.conf ]] && grep -qi "piwheels" /etc/pip.conf 2>/dev/null; then
+    warn "检测到系统 piwheels 配置，临时禁用以避免超时"
     sudo mv /etc/pip.conf /etc/pip.conf.bak.cvhell 2>/dev/null || true
     RESTORE_PIP_CONF=true
   fi
+  if [[ -f "$HOME/.config/pip/pip.conf" ]] && grep -qi "piwheels" "$HOME/.config/pip/pip.conf" 2>/dev/null; then
+    warn "检测到用户 piwheels 配置，临时禁用"
+    mv "$HOME/.config/pip/pip.conf" "$HOME/.config/pip/pip.conf.bak.cvhell" 2>/dev/null || true
+    RESTORE_USER_PIP_CONF=true
+  fi
 
-  PIP_OPTS="--index-url https://pypi.org/simple/ --timeout 120"
+  PIP_OPTS="--timeout 120"
 
   pip install --upgrade pip setuptools wheel $PIP_OPTS -q
   pip install $PIP_OPTS -r requirements.txt || pip install $PIP_OPTS --no-cache-dir -r requirements.txt
@@ -288,9 +295,13 @@ setup_backend() {
   ok "Python 依赖安装完成"
 
   # 恢复 pip.conf
-  if [[ "${RESTORE_PIP_CONF:-}" == true ]]; then
+  if [[ "$RESTORE_PIP_CONF" == true ]]; then
     sudo mv /etc/pip.conf.bak.cvhell /etc/pip.conf 2>/dev/null || true
     info "已恢复 /etc/pip.conf"
+  fi
+  if [[ "$RESTORE_USER_PIP_CONF" == true ]]; then
+    mv "$HOME/.config/pip/pip.conf.bak.cvhell" "$HOME/.config/pip/pip.conf" 2>/dev/null || true
+    info "已恢复用户 pip.conf"
   fi
 
   # 生成 .env
