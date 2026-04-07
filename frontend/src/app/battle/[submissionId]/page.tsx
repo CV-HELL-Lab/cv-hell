@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +38,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState("");
   const [prizePool, setPrizePool] = useState<number | null>(null);
+  const evaluationTriggered = useRef(false);
 
   useEffect(() => {
     const fetchSubmission = async () => {
@@ -51,7 +52,8 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
         setPrizePool(bossRes.data.prize_pool);
         
         // If not evaluated yet, trigger evaluation
-        if (!res.data.boss_response) {
+        if (!res.data.boss_response && !evaluationTriggered.current) {
+          evaluationTriggered.current = true;
           triggerEvaluation(res.data.boss_id);
         }
       } catch (err) {

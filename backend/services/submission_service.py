@@ -166,6 +166,30 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
 
+    # --- Guard: prevent double evaluation for the same submission ---
+    existing_response = db.query(BossResponse).filter(BossResponse.submission_id == submission_id).first()
+    if existing_response:
+        db.refresh(user)
+        prize_pool = db.query(PrizePool).filter(PrizePool.boss_id == boss_id).first()
+        return {
+            "response_id": str(existing_response.id),
+            "submission_id": str(submission_id),
+            "version_number": submission.version_number,
+            "roast_opening": existing_response.roast_opening,
+            "why_it_fails": existing_response.why_it_fails,
+            "top_issues": json.loads(existing_response.top_issues_json),
+            "fix_direction": existing_response.fix_direction,
+            "mood": existing_response.mood,
+            "mood_level": existing_response.mood_level,
+            "approved": existing_response.approved,
+            "approved_phrase": existing_response.approved_phrase,
+            "world_first": False,
+            "points_deducted": 0,
+            "points_remaining": user.points,
+            "prize_pool": prize_pool.total_points if prize_pool else 0,
+            "points_won": 0,
+        }
+
     # --- Step 1: Deduct points atomically ---
     cost = settings.SUBMISSION_COST
     if user.points < cost:
