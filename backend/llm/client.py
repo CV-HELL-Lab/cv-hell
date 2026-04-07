@@ -8,7 +8,7 @@ from core.database import SessionLocal
 PROVIDER_DEFAULTS = {
     "qwen": {
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "model": "qwen-vl-plus",
+        "model": "qwen3.6-plus",
     },
     "deepseek": {
         "base_url": "https://api.deepseek.com",

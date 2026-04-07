@@ -1,6 +1,6 @@
 """
-Core submission flow: deduct points → call LLM → persist → handle first-kill settlement.
-All point operations are transactional.
+Core submission flow: validate → call LLM → deduct points → persist → handle first-kill.
+Points are only deducted AFTER the LLM call succeeds — if LLM fails, nothing is touched.
 """
 import json
 import logging
@@ -144,13 +144,13 @@ def upload_resume(
 def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, submission_id: uuid.UUID) -> dict:
     """
     Main evaluation flow.
-    Step 1: Deduct points + credit prize pool (atomic transaction).
-    Step 2: Call LLM.
-    Step 3: Persist response.
+    Step 1: Validate user has enough points (no deduction yet).
+    Step 2: Call LLM (no DB writes yet — if it fails, nothing is touched).
+    Step 3: Deduct points + credit prize pool + persist response (single atomic commit).
     Step 4: Handle first-kill settlement if approved.
     """
     # --- Load required records ---
-    user = db.query(User).filter(User.id == user_id).with_for_update().first()
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -190,8 +190,41 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
             "points_won": 0,
         }
 
-    # --- Step 1: Deduct points atomically ---
+    # --- Step 1: Validate points (no deduction yet) ---
     cost = settings.SUBMISSION_COST
+    if user.points < cost:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "insufficient_points",
+                "points_required": cost,
+                "points_remaining": user.points,
+            }
+        )
+
+    # --- Step 2: Call LLM FIRST (before any DB writes) ---
+    boss_config = _load_boss_config(boss.slug)
+    prior_versions = _get_prior_versions(db, user_id, boss_id, settings.MAX_PRIOR_VERSIONS)
+    reference_items = _get_reference_items(db, boss.slug, len(prior_versions) + 1)
+    from parsers.resume_parser import images_to_base64
+    image_paths = json.loads(submission.image_paths or "[]")
+    image_base64 = images_to_base64(image_paths) if image_paths else []
+
+    try:
+        eval_result = evaluate_resume(
+            boss_config=boss_config,
+            rudeness_level=boss.rudeness_level,
+            extracted_text=submission.extracted_text or "",
+            image_base64_list=image_base64,
+            prior_versions=prior_versions,
+            reference_items=reference_items,
+        )
+    except EvaluationError as e:
+        logger.error(f"Evaluation failed for submission {submission_id}: {e}")
+        raise HTTPException(status_code=503, detail="The boss refused to respond. Try again.")
+
+    # --- Step 3: LLM succeeded — now deduct points + persist in one atomic commit ---
+    user = db.query(User).filter(User.id == user_id).with_for_update().first()
     if user.points < cost:
         raise HTTPException(
             status_code=402,
@@ -219,49 +252,7 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
         boss_id=boss_id,
         submission_id=submission_id,
     ))
-    db.commit()
 
-    # --- Step 2: Call LLM ---
-    boss_config = _load_boss_config(boss.slug)
-    prior_versions = _get_prior_versions(db, user_id, boss_id, settings.MAX_PRIOR_VERSIONS)
-    reference_items = _get_reference_items(db, boss.slug, len(prior_versions) + 1)
-    from parsers.resume_parser import images_to_base64
-    image_paths = json.loads(submission.image_paths or "[]")
-    image_base64 = images_to_base64(image_paths) if image_paths else []
-
-    try:
-        eval_result = evaluate_resume(
-            boss_config=boss_config,
-            rudeness_level=boss.rudeness_level,
-            extracted_text=submission.extracted_text or "",
-            image_base64_list=image_base64,
-            prior_versions=prior_versions,
-            reference_items=reference_items,
-        )
-    except EvaluationError as e:
-        logger.error(f"Evaluation failed for submission {submission_id}: {e}")
-        
-        # LLM call failed, refund points
-        user_refund = db.query(User).filter(User.id == user_id).with_for_update().first()
-        pool_refund = db.query(PrizePool).filter(PrizePool.boss_id == boss_id).with_for_update().first()
-        
-        if user_refund and pool_refund:
-            user_refund.points += cost
-            pool_refund.total_points -= cost
-            
-            db.add(PointTransaction(
-                id=uuid.uuid4(),
-                user_id=user_id,
-                amount=cost,
-                type="refund",
-                boss_id=boss_id,
-                submission_id=submission_id,
-            ))
-            db.commit()
-            
-        raise HTTPException(status_code=503, detail="The boss refused to respond. Try again.")
-
-    # --- Step 3: Persist boss response ---
     boss_response = BossResponse(
         id=uuid.uuid4(),
         submission_id=submission_id,
