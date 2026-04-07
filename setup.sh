@@ -253,6 +253,8 @@ clone_repo() {
     ok "代码克隆完成"
   else
     ok "使用现有代码: $PROJECT_DIR"
+    info "拉取最新代码..."
+    cd "$PROJECT_DIR" && git pull || warn "git pull 失败，使用现有版本"
   fi
 }
 
@@ -260,6 +262,12 @@ clone_repo() {
 setup_backend() {
   info "配置后端..."
   cd "$PROJECT_DIR/backend"
+
+  # 如果旧 venv 存在且包含 psycopg2（不兼容 Python 3.13），删除重建
+  if [[ -d "venv" ]] && venv/bin/pip show psycopg2-binary &>/dev/null; then
+    warn "检测到旧的 psycopg2，重建虚拟环境以切换到 psycopg v3"
+    rm -rf venv
+  fi
 
   # 创建虚拟环境
   if [[ ! -d "venv" ]]; then
