@@ -522,3 +522,34 @@ def factory_reset(db: Session = Depends(get_db), _: str = Depends(get_admin)):
 
     db.commit()
     return {"ok": True, "message": "Factory reset complete. All user data wiped, bosses restored."}
+
+
+@router.post("/force-defeat-current-boss")
+def force_defeat_current_boss(db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    """
+    Admin tool: force-defeat the current boss and unlock the next one.
+    Skips the BossDefeat record (no user/submission). Useful for testing boss progression.
+    """
+    boss = db.query(Boss).filter(Boss.status == "current").first()
+    if not boss:
+        raise HTTPException(status_code=404, detail="No active boss to defeat")
+
+    pool = db.query(PrizePool).filter(PrizePool.boss_id == boss.id).first()
+    if pool:
+        pool.settled = True
+
+    boss.status = "defeated"
+
+    next_boss = db.query(Boss).filter(Boss.order_index == boss.order_index + 1).first()
+    if next_boss:
+        next_boss.status = "current"
+        existing_pool = db.query(PrizePool).filter(PrizePool.boss_id == next_boss.id).first()
+        if not existing_pool:
+            db.add(PrizePool(id=uuid.uuid4(), boss_id=next_boss.id, total_points=100))
+
+    db.commit()
+    return {
+        "ok": True,
+        "defeated_boss": boss.name,
+        "next_boss": next_boss.name if next_boss else None,
+    }

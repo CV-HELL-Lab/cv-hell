@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
+  const [defeating, setDefeating] = useState(false);
   const router = useRouter();
 
   const fetchStats = async () => {
@@ -159,6 +160,41 @@ export default function AdminDashboard() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Admin Tools */}
+      <div className="mt-12 border-t border-amber-900/30 pt-8">
+        <h3 className="text-amber-500 font-bold uppercase tracking-widest mb-4">Admin Tools</h3>
+        <div className="bg-amber-950/20 border border-amber-900/40 p-6 rounded-sm flex justify-between items-center">
+          <div>
+            <h4 className="text-white font-bold uppercase tracking-widest text-sm">Force Defeat Current Boss</h4>
+            <p className="text-gray-500 font-mono text-xs mt-1 max-w-xl">
+              Skip the current boss and unlock the next one. Useful for testing boss progression. No user submission needed.
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              if (!confirm("Force defeat the current boss and unlock the next one?")) return;
+              setDefeating(true);
+              try {
+                const token = localStorage.getItem("cvhell_admin_token");
+                const res = await api.post("/admin/force-defeat-current-boss", {}, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                alert(`Defeated: ${res.data.defeated_boss}${res.data.next_boss ? `\nNext boss: ${res.data.next_boss}` : "\nNo more bosses!"}`);
+                fetchStats();
+              } catch (err: any) {
+                alert(err.response?.data?.detail || "Failed to defeat boss.");
+              } finally {
+                setDefeating(false);
+              }
+            }}
+            disabled={defeating || !stats?.current_boss}
+            className="shrink-0 px-6 py-3 bg-amber-900 hover:bg-amber-800 text-white font-bold uppercase tracking-widest text-sm transition-colors disabled:opacity-50 border border-amber-700"
+          >
+            {defeating ? "Defeating..." : "Force Defeat"}
+          </button>
+        </div>
       </div>
 
       {/* Factory Reset */}

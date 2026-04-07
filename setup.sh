@@ -1,0 +1,498 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================================
+#  CV HELL — 一键安装 & 启动脚本
+#  适用于 macOS / Ubuntu / Debian / Raspberry Pi
+#  用法:  chmod +x setup.sh && ./setup.sh
+# ============================================================================
+
+REPO_URL="https://github.com/CV-HELL-Lab/cv-hell.git"
+DEFAULT_BACKEND_PORT=9090
+DEFAULT_FRONTEND_PORT=3000
+DEFAULT_DB_NAME="cvhell"
+DEFAULT_DB_USER="postgres"
+DEFAULT_ADMIN_PASSWORD="123456"
+
+# ---------- 颜色 ----------
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+info()  { echo -e "${CYAN}[INFO]${NC}  $*"; }
+ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+fail()  { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
+ask()   { echo -en "${BOLD}$*${NC}"; }
+
+# ---------- 检测操作系统 ----------
+detect_os() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    OS="macos"
+  elif [[ -f /etc/debian_version ]]; then
+    OS="debian"
+  else
+    OS="unknown"
+    warn "未检测到 macOS 或 Debian/Ubuntu，部分自动安装可能不可用"
+  fi
+  info "检测到操作系统: $OS"
+}
+
+# ---------- 交互式配置 ----------
+configure() {
+  echo ""
+  echo -e "${BOLD}══════════════════════════════════════════${NC}"
+  echo -e "${BOLD}       CV HELL — 一键安装配置向导         ${NC}"
+  echo -e "${BOLD}══════════════════════════════════════════${NC}"
+  echo ""
+
+  # 项目目录
+  ask "项目安装目录 [默认: ~/Desktop/cv-hell]: "
+  read -r PROJECT_DIR
+  PROJECT_DIR="${PROJECT_DIR:-$HOME/Desktop/cv-hell}"
+
+  # 是否克隆代码（如果目录已存在可跳过）
+  CLONE_REPO=true
+  if [[ -d "$PROJECT_DIR" ]]; then
+    warn "目录 $PROJECT_DIR 已存在"
+    ask "是否跳过克隆，使用现有代码？(Y/n): "
+    read -r skip_clone
+    if [[ "${skip_clone:-Y}" =~ ^[Yy]$ ]]; then
+      CLONE_REPO=false
+    fi
+  fi
+
+  # 数据库
+  ask "PostgreSQL 数据库名 [默认: $DEFAULT_DB_NAME]: "
+  read -r DB_NAME
+  DB_NAME="${DB_NAME:-$DEFAULT_DB_NAME}"
+
+  ask "PostgreSQL 用户名 [默认: $DEFAULT_DB_USER]: "
+  read -r DB_USER
+  DB_USER="${DB_USER:-$DEFAULT_DB_USER}"
+
+  ask "PostgreSQL 密码 [留空则无密码]: "
+  read -rs DB_PASS
+  echo ""
+
+  # 端口
+  ask "后端端口 [默认: $DEFAULT_BACKEND_PORT]: "
+  read -r BACKEND_PORT
+  BACKEND_PORT="${BACKEND_PORT:-$DEFAULT_BACKEND_PORT}"
+
+  ask "前端端口 [默认: $DEFAULT_FRONTEND_PORT]: "
+  read -r FRONTEND_PORT
+  FRONTEND_PORT="${FRONTEND_PORT:-$DEFAULT_FRONTEND_PORT}"
+
+  # Admin 密码
+  ask "Admin 面板密码 [默认: $DEFAULT_ADMIN_PASSWORD]: "
+  read -rs ADMIN_PASSWORD
+  echo ""
+  ADMIN_PASSWORD="${ADMIN_PASSWORD:-$DEFAULT_ADMIN_PASSWORD}"
+
+  # 运行模式
+  ask "运行模式 — dev(开发) 或 prod(生产) [默认: dev]: "
+  read -r RUN_MODE
+  RUN_MODE="${RUN_MODE:-dev}"
+
+  # 构建 DATABASE_URL
+  if [[ -n "$DB_PASS" ]]; then
+    DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}"
+  elif [[ "$DB_USER" == "postgres" && "$OS" == "macos" ]]; then
+    DATABASE_URL="postgresql://localhost:5432/${DB_NAME}"
+  elif [[ "$OS" == "debian" ]]; then
+    # Debian/Raspberry Pi 默认 postgres 用 peer auth，需要设置密码
+    DB_PASS="cvhell_$(python3 -c "import secrets; print(secrets.token_hex(4))" 2>/dev/null || echo pass)"
+    info "为 PostgreSQL 用户 $DB_USER 自动生成密码"
+    DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}"
+  else
+    DATABASE_URL="postgresql://${DB_USER}@localhost:5432/${DB_NAME}"
+  fi
+
+  echo ""
+  echo -e "${BOLD}── 配置确认 ──${NC}"
+  echo "  项目目录:     $PROJECT_DIR"
+  echo "  克隆代码:     $CLONE_REPO"
+  echo "  数据库:       $DATABASE_URL"
+  echo "  后端端口:     $BACKEND_PORT"
+  echo "  前端端口:     $FRONTEND_PORT"
+  echo "  Admin 密码:   ******"
+  echo "  运行模式:     $RUN_MODE"
+  echo ""
+
+  ask "确认以上配置并开始安装？(Y/n): "
+  read -r confirm
+  if [[ ! "${confirm:-Y}" =~ ^[Yy]$ ]]; then
+    info "已取消"
+    exit 0
+  fi
+}
+
+# ---------- 安装系统依赖 ----------
+install_system_deps() {
+  info "检查系统依赖..."
+
+  if [[ "$OS" == "macos" ]]; then
+    if ! command -v brew &>/dev/null; then
+      fail "未安装 Homebrew。请先安装: https://brew.sh"
+    fi
+
+    local deps_to_install=()
+    command -v python3 &>/dev/null || deps_to_install+=(python)
+    command -v node &>/dev/null    || deps_to_install+=(node)
+    command -v psql &>/dev/null    || deps_to_install+=(postgresql)
+    command -v pdftoppm &>/dev/null || deps_to_install+=(poppler)
+
+    if [[ ${#deps_to_install[@]} -gt 0 ]]; then
+      info "安装缺少的依赖: ${deps_to_install[*]}"
+      brew install "${deps_to_install[@]}"
+    fi
+
+    # 确保 PostgreSQL 启动
+    brew services start postgresql 2>/dev/null || true
+
+  elif [[ "$OS" == "debian" ]]; then
+    local deps_to_install=()
+    command -v python3 &>/dev/null  || deps_to_install+=(python3 python3-pip python3-venv)
+    command -v psql &>/dev/null     || deps_to_install+=(postgresql postgresql-client)
+    command -v pdftoppm &>/dev/null || deps_to_install+=(poppler-utils)
+    # 编译依赖（psycopg2 等在 ARM 上需要从源码编译）
+    deps_to_install+=(python3-dev libpq-dev postgresql-server-dev-all build-essential libffi-dev libssl-dev)
+
+    if [[ ${#deps_to_install[@]} -gt 0 ]]; then
+      info "安装缺少的依赖: ${deps_to_install[*]}"
+      sudo apt-get update -qq
+      sudo apt-get install -y -qq "${deps_to_install[@]}" 2>/dev/null || \
+        sudo apt-get install -y "${deps_to_install[@]}"
+    fi
+
+    # Node.js: Debian/Raspberry Pi 默认版本可能过旧，确保 >= 18
+    if command -v node &>/dev/null; then
+      NODE_VER=$(node -v | sed 's/v//' | cut -d. -f1)
+      if [[ "$NODE_VER" -lt 18 ]]; then
+        warn "Node.js 版本过低 (v${NODE_VER})，需要 >= 18"
+        info "通过 NodeSource 安装 Node.js 20..."
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+      fi
+    else
+      info "安装 Node.js 20 (NodeSource)..."
+      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+    fi
+
+    sudo systemctl start postgresql 2>/dev/null || \
+      sudo service postgresql start 2>/dev/null || true
+    sudo systemctl enable postgresql 2>/dev/null || true
+  fi
+
+  # 验证
+  command -v python3 &>/dev/null || fail "Python3 未安装"
+  command -v node &>/dev/null    || fail "Node.js 未安装"
+  command -v psql &>/dev/null    || fail "PostgreSQL 未安装"
+
+  ok "系统依赖就绪"
+}
+
+# ---------- 创建数据库 ----------
+setup_database() {
+  info "检查数据库 $DB_NAME ..."
+
+  local db_exists=false
+
+  if psql -U "$DB_USER" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+    db_exists=true
+  elif psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+    db_exists=true
+  elif sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+    db_exists=true
+  fi
+
+  if [[ "$db_exists" == true ]]; then
+    ok "数据库 $DB_NAME 已存在，跳过创建"
+    return
+  fi
+
+  info "创建数据库 $DB_NAME ..."
+
+  if createdb -U "$DB_USER" "$DB_NAME" 2>/dev/null; then
+    ok "数据库创建成功 (createdb -U $DB_USER)"
+  elif createdb "$DB_NAME" 2>/dev/null; then
+    ok "数据库创建成功 (createdb with current user)"
+  elif sudo -u postgres createdb "$DB_NAME" 2>/dev/null; then
+    ok "数据库创建成功 (sudo -u postgres createdb)"
+  elif sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" 2>/dev/null; then
+    ok "数据库创建成功 (sudo -u postgres psql)"
+  else
+    warn "无法自动创建数据库"
+    echo ""
+    echo -e "  请手动创建数据库，选择以下任意一种方式："
+    echo -e "    ${BOLD}sudo -u postgres createdb $DB_NAME${NC}"
+    echo -e "    ${BOLD}createdb $DB_NAME${NC}"
+    echo -e "    ${BOLD}sudo -u postgres psql -c \"CREATE DATABASE $DB_NAME;\"${NC}"
+    echo ""
+    ask "创建完成后按回车继续（或 Ctrl+C 退出）: "
+    read -r
+  fi
+
+  # Debian/树莓派: 确保 postgres 用户有密码并授权数据库
+  if [[ "$OS" == "debian" && -n "$DB_PASS" ]]; then
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+  fi
+}
+
+# ---------- 克隆代码 ----------
+clone_repo() {
+  if [[ "$CLONE_REPO" == true ]]; then
+    info "克隆项目代码..."
+    git clone "$REPO_URL" "$PROJECT_DIR"
+    ok "代码克隆完成"
+  else
+    ok "使用现有代码: $PROJECT_DIR"
+  fi
+}
+
+# ---------- 安装后端 ----------
+setup_backend() {
+  info "配置后端..."
+  cd "$PROJECT_DIR/backend"
+
+  # 创建虚拟环境
+  if [[ ! -d "venv" ]]; then
+    python3 -m venv venv
+    ok "Python 虚拟环境已创建"
+  fi
+
+  source venv/bin/activate
+
+  # 安装依赖（ARM/树莓派上编译较慢，请耐心等待）
+  info "安装 Python 依赖（ARM 设备上可能需要几分钟编译）..."
+
+  # 树莓派默认 pip.conf 配置了 piwheels.org，经常超时
+  # 临时备份并禁用系统 pip.conf，强制使用 PyPI
+  if [[ -f /etc/pip.conf ]] && grep -q "piwheels" /etc/pip.conf 2>/dev/null; then
+    warn "检测到 piwheels 配置，临时禁用以避免超时"
+    sudo mv /etc/pip.conf /etc/pip.conf.bak.cvhell 2>/dev/null || true
+    RESTORE_PIP_CONF=true
+  fi
+
+  PIP_OPTS="--index-url https://pypi.org/simple/ --timeout 120"
+
+  pip install --upgrade pip setuptools wheel $PIP_OPTS -q
+  pip install $PIP_OPTS -r requirements.txt || pip install $PIP_OPTS --no-cache-dir -r requirements.txt
+  pip install $PIP_OPTS -q "httpx>=0.27,<0.28" "openai>=1.55"
+  ok "Python 依赖安装完成"
+
+  # 恢复 pip.conf
+  if [[ "${RESTORE_PIP_CONF:-}" == true ]]; then
+    sudo mv /etc/pip.conf.bak.cvhell /etc/pip.conf 2>/dev/null || true
+    info "已恢复 /etc/pip.conf"
+  fi
+
+  # 生成 .env
+  info "生成 .env 配置文件..."
+  JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+  ADMIN_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+  ADMIN_HASH=$(python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('$ADMIN_PASSWORD'))")
+
+  cat > .env <<ENVEOF
+DATABASE_URL=$DATABASE_URL
+JWT_SECRET_KEY=$JWT_SECRET
+JWT_EXPIRE_DAYS=7
+
+MAX_REFERENCE_ITEMS=3
+MAX_PRIOR_VERSIONS=3
+BOSS_CONFIGS_PATH=./boss_configs
+FILE_UPLOAD_MAX_BYTES=5242880
+FILE_STORAGE_PATH=./uploads
+ALLOWED_FILE_TYPES=pdf,docx
+
+SUBMISSION_COST=10
+INITIAL_POINTS=100
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=$ADMIN_HASH
+ADMIN_SECRET_KEY=$ADMIN_SECRET
+ENVEOF
+
+  ok ".env 已生成（Admin 用户名: admin，密码: 你设置的密码）"
+
+  # 确保 uploads 目录存在
+  mkdir -p uploads
+
+  # 初始化数据库 & 种子数据
+  info "初始化数据库..."
+  python3 -c "
+from core.database import engine, Base
+import models
+Base.metadata.create_all(bind=engine)
+print('Tables created.')
+"
+  python3 seed.py
+  python3 seed_reference_pool.py 2>/dev/null || warn "seed_reference_pool.py 跳过（doc 文件夹可能不存在）"
+
+  ok "后端配置完成"
+  deactivate
+  cd ..
+}
+
+# ---------- 安装前端 ----------
+setup_frontend() {
+  info "配置前端..."
+  cd "$PROJECT_DIR/frontend"
+
+  info "安装 Node.js 依赖..."
+  npm install --silent 2>/dev/null || npm install
+  ok "Node.js 依赖安装完成"
+
+  if [[ "$RUN_MODE" == "prod" ]]; then
+    info "构建生产版本..."
+    NEXT_PUBLIC_API_URL="http://127.0.0.1:${BACKEND_PORT}" npm run build
+    ok "前端生产构建完成"
+  fi
+
+  cd ..
+}
+
+# ---------- 生成启动脚本 ----------
+generate_start_script() {
+  info "生成启动脚本..."
+
+  if [[ "$RUN_MODE" == "dev" ]]; then
+    cat > "$PROJECT_DIR/start.sh" <<STARTEOF
+#!/bin/bash
+set -e
+echo ""
+echo "═══════════════════════════════════════"
+echo "       CV HELL — 启动服务"
+echo "═══════════════════════════════════════"
+echo ""
+
+# 启动后端
+echo "[1/2] 启动后端 (端口 $BACKEND_PORT)..."
+cd backend
+source venv/bin/activate
+uvicorn main:app --reload --port $BACKEND_PORT &
+BACKEND_PID=\$!
+cd ..
+
+sleep 2
+
+# 启动前端
+echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
+cd frontend
+export NEXT_PUBLIC_API_URL=http://127.0.0.1:$BACKEND_PORT
+npx next dev -p $FRONTEND_PORT &
+FRONTEND_PID=\$!
+cd ..
+
+echo ""
+echo "═══════════════════════════════════════"
+echo "  CV HELL 已启动!"
+echo "  前端:   http://localhost:$FRONTEND_PORT"
+echo "  后端:   http://localhost:$BACKEND_PORT"
+echo "  Admin:  http://localhost:$FRONTEND_PORT/admin"
+echo "  API 文档: http://localhost:$BACKEND_PORT/docs"
+echo ""
+echo "  Admin 登录 — 用户名: admin"
+echo "═══════════════════════════════════════"
+echo ""
+echo "按 Ctrl+C 停止所有服务"
+
+trap "kill \$BACKEND_PID \$FRONTEND_PID 2>/dev/null; exit" INT TERM
+wait
+STARTEOF
+  else
+    cat > "$PROJECT_DIR/start.sh" <<STARTEOF
+#!/bin/bash
+set -e
+echo ""
+echo "═══════════════════════════════════════"
+echo "  CV HELL — 生产模式启动"
+echo "═══════════════════════════════════════"
+echo ""
+
+# 检测 CPU 核心数来决定 worker 数量
+WORKERS=\$(nproc 2>/dev/null || echo 2)
+if [ "\$WORKERS" -gt 4 ]; then WORKERS=4; fi
+if [ "\$WORKERS" -lt 1 ]; then WORKERS=1; fi
+
+echo "[1/2] 启动后端 (端口 $BACKEND_PORT, \$WORKERS workers)..."
+cd backend
+source venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT --workers \$WORKERS &
+BACKEND_PID=\$!
+cd ..
+
+sleep 2
+
+# 启动前端
+echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
+cd frontend
+npx next start -p $FRONTEND_PORT &
+FRONTEND_PID=\$!
+cd ..
+
+echo ""
+echo "═══════════════════════════════════════"
+echo "  CV HELL 生产环境已启动!"
+echo "  前端:   http://localhost:$FRONTEND_PORT"
+echo "  后端:   http://localhost:$BACKEND_PORT"
+echo "  Admin:  http://localhost:$FRONTEND_PORT/admin"
+echo ""
+echo "  Admin 登录 — 用户名: admin"
+echo "═══════════════════════════════════════"
+echo ""
+echo "按 Ctrl+C 停止所有服务"
+
+trap "kill \$BACKEND_PID \$FRONTEND_PID 2>/dev/null; exit" INT TERM
+wait
+STARTEOF
+  fi
+
+  chmod +x "$PROJECT_DIR/start.sh"
+  ok "启动脚本已生成: $PROJECT_DIR/start.sh"
+}
+
+# ---------- 主流程 ----------
+main() {
+  echo ""
+  echo -e "${BOLD}${CYAN}"
+  echo '   ██████╗██╗   ██╗    ██╗  ██╗███████╗██╗     ██╗     '
+  echo '  ██╔════╝██║   ██║    ██║  ██║██╔════╝██║     ██║     '
+  echo '  ██║     ██║   ██║    ███████║█████╗  ██║     ██║     '
+  echo '  ██║     ╚██╗ ██╔╝    ██╔══██║██╔══╝  ██║     ██║     '
+  echo '  ╚██████╗ ╚████╔╝     ██║  ██║███████╗███████╗███████╗'
+  echo '   ╚═════╝  ╚═══╝      ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝'
+  echo -e "${NC}"
+
+  detect_os
+  configure
+  install_system_deps
+  setup_database
+  clone_repo
+  setup_backend
+  setup_frontend
+  generate_start_script
+
+  echo ""
+  echo -e "${BOLD}${GREEN}══════════════════════════════════════════${NC}"
+  echo -e "${BOLD}${GREEN}       安装完成!${NC}"
+  echo -e "${BOLD}${GREEN}══════════════════════════════════════════${NC}"
+  echo ""
+  echo -e "  启动项目:  ${BOLD}cd $PROJECT_DIR && ./start.sh${NC}"
+  echo ""
+  echo -e "  Admin 面板: http://localhost:$FRONTEND_PORT/admin"
+  echo -e "  用户名: ${BOLD}admin${NC}"
+  echo -e "  密码:   ${BOLD}你设置的密码${NC}"
+  echo ""
+  echo -e "  ${YELLOW}提醒: 首次使用请在 Admin 面板添加 LLM API Key${NC}"
+  echo -e "  ${YELLOW}路径: Admin → LLM Configs → Add Key${NC}"
+  echo ""
+}
+
+main "$@"
