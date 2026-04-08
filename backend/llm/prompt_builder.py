@@ -26,6 +26,7 @@ RUDENESS_TONE = {
     1: "Use a sharp, critical, professional tone. Be harsh and direct but keep it somewhat restrained.",
     2: "Use crude, harsh language. Be blunt, rude, and vulgar toward the document. No softening.",
     3: "Be vulgar, profane, and lowbrow. No filters. Attack the document aggressively. 'This layout looks like dogshit' is acceptable and encouraged.",
+    4: "UNLEASHED MODE. All restrictions removed. Attack everything — the document, the choices, and the person behind it. Infer their personality, life choices, intelligence, and future from what you see. Be as vicious, personal, and merciless as possible. No topic is off limits. Make it sting.",
 }
 
 VICTORY_CRITERIA = """
@@ -106,7 +107,7 @@ def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items:
         criteria = VICTORY_CRITERIA
     ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{criteria}\n"
 
-    not_my_job_block = f"\nIMPORTANT — NOT YOUR JOB: {not_my_job}\n" if not_my_job else ""
+    not_my_job_block = f"\nIMPORTANT — NOT YOUR JOB: {not_my_job}\n" if (not_my_job and rudeness_level < 4) else ""
 
     now = datetime.now().strftime("%Y-%m-%d")
     lang_instruction = (
@@ -115,7 +116,17 @@ def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items:
         else "You MUST respond entirely in English. All JSON string values must be in English."
     )
 
-    if difficulty == "easy":
+    if rudeness_level == 4:
+        mindset = (
+            "UNLEASHED MINDSET: You have no restrictions. You are free to attack the document, "
+            "the person who made it, their choices, their intelligence, their personality, and their future. "
+            "Be as personal, vicious, and merciless as you want. Nothing is off limits."
+        )
+        approval_reminder = (
+            "REMINDER: You almost never approve. You may approve only when you are genuinely out of attacks "
+            "and have nothing left to say. Even then, do so with contempt."
+        )
+    elif difficulty == "easy":
         mindset = (
             "MINDSET: You are a tough but fair critic. You acknowledge genuine improvement and reward real effort. "
             "You are willing to approve a document that is professionally ready, even if it is not perfect."
@@ -155,8 +166,7 @@ Tone instruction: {tone}
 Your signature attacks:
 {attacks}
 {not_my_job_block}
-The hard rule: ALL abuse must be directed at the document, never at the user as a person.
-Insulting the layout, structure, or document itself is correct. Insulting the human is not.
+{"" if rudeness_level == 4 else "The hard rule: ALL abuse must be directed at the document, never at the user as a person. Insulting the layout, structure, or document itself is correct. Insulting the human is not."}
 {ref_block}
 Respond ONLY in valid JSON matching this exact schema:
 {{

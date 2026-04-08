@@ -353,7 +353,24 @@ setup_backend() {
   info "生成 .env 配置文件..."
   JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
   ADMIN_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+  SUPER_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
   ADMIN_HASH=$(python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('$ADMIN_PASSWORD'))")
+
+  echo ""
+  echo "══════════════════════════════════════════"
+  echo "  超级管理员密码设置（隐藏内部功能）"
+  echo "══════════════════════════════════════════"
+  while true; do
+    read -s -p "  设置超级管理员密码: " SUPER_PASSWORD
+    echo ""
+    read -s -p "  确认超级管理员密码: " SUPER_PASSWORD2
+    echo ""
+    if [ "$SUPER_PASSWORD" = "$SUPER_PASSWORD2" ]; then
+      break
+    fi
+    echo "  [错误] 两次密码不一致，请重试"
+  done
+  SUPER_HASH=$(python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('$SUPER_PASSWORD'))")
 
   cat > .env <<ENVEOF
 DATABASE_URL=$DATABASE_URL
@@ -373,6 +390,9 @@ INITIAL_POINTS=100
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=$ADMIN_HASH
 ADMIN_SECRET_KEY=$ADMIN_SECRET
+
+SUPER_ADMIN_PASSWORD_HASH=$SUPER_HASH
+SUPER_ADMIN_SECRET_KEY=$SUPER_SECRET
 ENVEOF
 
   ok ".env 已生成（Admin 用户名: admin，密码: 你设置的密码）"

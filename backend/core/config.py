@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD_HASH: str
     ADMIN_SECRET_KEY: str
 
+    SUPER_ADMIN_PASSWORD_HASH: str = ""
+    SUPER_ADMIN_SECRET_KEY: str = ""
+
     SUBMISSION_COST: int = 10
     INITIAL_POINTS: int = 100
 

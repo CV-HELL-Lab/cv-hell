@@ -35,3 +35,14 @@ def decode_user_token(token: str) -> str:
 def decode_admin_token(token: str) -> str:
     payload = jwt.decode(token, settings.ADMIN_SECRET_KEY, algorithms=["HS256"])
     return payload["sub"]
+
+
+def create_super_token() -> str:
+    """Short-lived super admin token — 2 hours only."""
+    expire = datetime.now(timezone.utc) + timedelta(hours=2)
+    return jwt.encode({"sub": "super", "exp": expire}, settings.SUPER_ADMIN_SECRET_KEY, algorithm="HS256")
+
+
+def decode_super_token(token: str) -> str:
+    payload = jwt.decode(token, settings.SUPER_ADMIN_SECRET_KEY, algorithms=["HS256"])
+    return payload["sub"]

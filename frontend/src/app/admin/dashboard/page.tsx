@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { Activity, Users, FileText, CheckCircle, ShieldAlert, RotateCcw, Bomb, Gauge } from "lucide-react";
+import { Activity, Users, FileText, CheckCircle, ShieldAlert, RotateCcw, Bomb, Gauge, Skull, X } from "lucide-react";
 
 interface Stats {
   current_boss: { name: string; status: string } | null;
@@ -21,6 +21,16 @@ export default function AdminDashboard() {
   const [defeating, setDefeating] = useState(false);
   const [difficultyMode, setDifficultyMode] = useState<"hard" | "easy">("hard");
   const [difficultyLoading, setDifficultyLoading] = useState(false);
+
+  // Easter egg state
+  const [titleClickCount, setTitleClickCount] = useState(0);
+  const [showSuperModal, setShowSuperModal] = useState(false);
+  const [superPassword, setSuperPassword] = useState("");
+  const [superToken, setSuperToken] = useState<string | null>(null);
+  const [superError, setSuperError] = useState("");
+  const [superLoading, setSuperLoading] = useState(false);
+  const [bossRudenessMap, setBossRudenessMap] = useState<Record<string, number>>({});
+
   const router = useRouter();
 
   const fetchStats = async () => {
@@ -46,6 +56,55 @@ export default function AdminDashboard() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTitleClick = () => {
+    setTitleClickCount(prev => {
+      const next = prev + 1;
+      if (next >= 5) {
+        setShowSuperModal(true);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const handleSuperAuth = async () => {
+    setSuperLoading(true);
+    setSuperError("");
+    try {
+      const token = localStorage.getItem("cvhell_admin_token");
+      const res = await api.post("/admin/super-auth", { username: "super", password: superPassword }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuperToken(res.data.super_token);
+      setSuperPassword("");
+      // Load current boss rudeness levels
+      const bossRes = await api.get("/admin/bosses", { headers: { Authorization: `Bearer ${token}` } });
+      const map: Record<string, number> = {};
+      for (const b of bossRes.data) map[b.slug] = b.rudeness_level;
+      setBossRudenessMap(map);
+    } catch {
+      setSuperError("Wrong password.");
+    } finally {
+      setSuperLoading(false);
+    }
+  };
+
+  const toggleSuperRudeness = async (slug: string, currentLevel: number) => {
+    if (!superToken) return;
+    const enable = currentLevel !== 4;
+    try {
+      const res = await api.post(`/admin/bosses/${slug}/super-rudeness`, { enable }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("cvhell_admin_token")}`,
+          "X-Super-Token": superToken,
+        },
+      });
+      setBossRudenessMap(prev => ({ ...prev, [slug]: res.data.rudeness_level }));
+    } catch {
+      setSuperError("Failed. Super token may have expired.");
     }
   };
 
@@ -98,7 +157,11 @@ export default function AdminDashboard() {
     <div className="flex-1 p-8 bg-[#050505]">
       <div className="flex justify-between items-center mb-8 border-b border-[#4f3c32] pb-4">
         <div>
-          <h1 className="text-2xl font-mono font-bold text-white uppercase tracking-widest flex items-center">
+          <h1
+            className="text-2xl font-mono font-bold text-white uppercase tracking-widest flex items-center cursor-default select-none"
+            onClick={handleTitleClick}
+            title=""
+          >
             <ShieldAlert className="mr-3 text-amber-500" /> Platform Telemetry
           </h1>
         </div>
@@ -264,6 +327,75 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Super Admin Modal — Easter Egg */}
+      {showSuperModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-[#0a0a0a] border border-red-900 p-8 w-full max-w-md relative">
+            <button
+              onClick={() => { setShowSuperModal(false); setSuperToken(null); setSuperError(""); setSuperPassword(""); }}
+              className="absolute top-4 right-4 text-gray-600 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+
+            {!superToken ? (
+              <>
+                <h2 className="text-red-500 font-mono font-bold uppercase tracking-widest flex items-center mb-6">
+                  <Skull size={18} className="mr-2" /> Restricted Access
+                </h2>
+                <input
+                  type="password"
+                  value={superPassword}
+                  onChange={e => setSuperPassword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSuperAuth()}
+                  placeholder="Super admin password"
+                  className="w-full px-4 py-3 bg-[#111] border border-[#333] text-white font-mono focus:outline-none focus:border-red-700 mb-4"
+                  autoFocus
+                />
+                {superError && <p className="text-red-500 font-mono text-xs mb-4">{superError}</p>}
+                <button
+                  onClick={handleSuperAuth}
+                  disabled={superLoading || !superPassword}
+                  className="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold uppercase tracking-widest text-sm disabled:opacity-50"
+                >
+                  {superLoading ? "Verifying..." : "Authenticate"}
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-red-500 font-mono font-bold uppercase tracking-widest flex items-center mb-2">
+                  <Skull size={18} className="mr-2" /> Unleashed Mode
+                </h2>
+                <p className="text-gray-600 font-mono text-xs mb-6">Token valid for 2 hours. Level 4 removes all content restrictions.</p>
+                {superError && <p className="text-red-500 font-mono text-xs mb-4">{superError}</p>}
+                <div className="space-y-3">
+                  {Object.entries(bossRudenessMap).map(([slug, level]) => (
+                    <div key={slug} className="flex items-center justify-between bg-[#111] border border-[#222] px-4 py-3">
+                      <div>
+                        <span className="text-white font-mono text-sm font-bold">{slug}</span>
+                        <span className={`ml-3 font-mono text-xs ${level === 4 ? "text-red-400" : "text-gray-500"}`}>
+                          Level {level}{level === 4 ? " — UNLEASHED" : ""}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => toggleSuperRudeness(slug, level)}
+                        className={`px-4 py-1 font-mono text-xs font-bold uppercase border transition-colors ${
+                          level === 4
+                            ? "border-gray-600 text-gray-400 hover:border-gray-400"
+                            : "border-red-800 text-red-400 hover:bg-red-950"
+                        }`}
+                      >
+                        {level === 4 ? "Disable" : "Unleash"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

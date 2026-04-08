@@ -10,7 +10,7 @@ from sqlalchemy import func
 from core.database import get_db
 from core.security import verify_password, create_admin_token
 from core.config import settings
-from api.deps import get_admin
+from api.deps import get_admin, get_super_admin
 from models.boss import Boss
 from models.user import User
 from models.submission import Submission
@@ -548,6 +548,37 @@ def delete_leaderboard_entry(
     db.delete(entry)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/super-auth")
+def super_admin_login(body: AdminLoginRequest):
+    """Hidden endpoint — not documented. Validates super admin password and returns short-lived token."""
+    if not settings.SUPER_ADMIN_PASSWORD_HASH or not settings.SUPER_ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not verify_password(body.password, settings.SUPER_ADMIN_PASSWORD_HASH):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    from core.security import create_super_token
+    return {"super_token": create_super_token()}
+
+
+class SuperRudenessRequest(BaseModel):
+    enable: bool
+
+
+@router.post("/bosses/{slug}/super-rudeness")
+def set_super_rudeness(
+    slug: str,
+    body: SuperRudenessRequest,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_super_admin),
+):
+    """Hidden endpoint — sets rudeness_level to 4 (unleashed) or resets to 2."""
+    boss = db.query(Boss).filter(Boss.slug == slug).first()
+    if not boss:
+        raise HTTPException(status_code=404, detail="Boss not found")
+    boss.rudeness_level = 4 if body.enable else 2
+    db.commit()
+    return {"slug": slug, "rudeness_level": boss.rudeness_level}
 
 
 @router.post("/factory-reset")
