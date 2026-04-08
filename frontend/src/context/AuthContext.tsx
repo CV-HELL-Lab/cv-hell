@@ -31,9 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const res = await api.get("/me");
           setUser(res.data);
-        } catch (error) {
-          console.error("Failed to fetch user profile", error);
-          localStorage.removeItem("cvhell_token");
+        } catch (error: any) {
+          // Only remove token on explicit 401 (expired/invalid).
+          // Network errors (backend restarting) should keep the token.
+          if (error.response?.status === 401) {
+            localStorage.removeItem("cvhell_token");
+          }
         }
       }
       setLoading(false);

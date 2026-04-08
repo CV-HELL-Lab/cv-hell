@@ -24,7 +24,7 @@ def create_user_token(user_id: str) -> str:
 
 
 def create_admin_token() -> str:
-    return create_token("admin", settings.ADMIN_SECRET_KEY, 1)
+    return create_token("admin", settings.ADMIN_SECRET_KEY, 7)
 
 
 def decode_user_token(token: str) -> str:
