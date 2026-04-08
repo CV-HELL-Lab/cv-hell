@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Loader2, AlertCircle, RefreshCw, Trophy, ShieldCheck } from "lucide-react";
-import { loadKeyFromSession, encryptText } from "@/lib/vault";
+import { Loader2, AlertCircle, RefreshCw, Trophy, ShieldCheck, Lock } from "lucide-react";
+import { loadKeyFromSession, encryptText, decryptText } from "@/lib/vault";
 
 interface BossResponse {
   roast_opening: string;
@@ -20,6 +20,8 @@ interface BossResponse {
 }
 
 interface SubmissionData {
+  is_cv_encrypted?: boolean;
+  extracted_text_encrypted?: string | null;
   submission_id: string;
   boss_id: string;
   version_number: number;
@@ -47,7 +49,23 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
     const fetchSubmission = async () => {
       try {
         const res = await api.get(`/submission/${submissionId}`);
-        setSubmission(res.data);
+        const data = { ...res.data };
+
+        // If CV text is encrypted, try to decrypt it with vault key
+        if (data.is_cv_encrypted && data.extracted_text_encrypted) {
+          const vaultKey = await loadKeyFromSession();
+          if (vaultKey) {
+            try {
+              data.extracted_text = await decryptText(data.extracted_text_encrypted, vaultKey);
+            } catch {
+              data.extracted_text = null; // wrong key or corrupted
+            }
+          } else {
+            data.extracted_text = null; // vault locked
+          }
+        }
+
+        setSubmission(data);
         
         // Fetch current boss to get prize pool and slug
         const bossRes = await api.get("/boss/current");
@@ -187,7 +205,15 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
             <h3 className="text-gray-400 font-mono text-xs uppercase tracking-widest">{t("battle", "doc_structure")}</h3>
           </div>
           <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-gray-300 whitespace-pre-wrap leading-relaxed custom-scrollbar">
-            {submission.extracted_text || t("battle", "no_text")}
+            {submission.is_cv_encrypted && !submission.extracted_text ? (
+              <div className="flex flex-col items-center justify-center h-full space-y-3 text-center">
+                <Lock size={28} className="text-gray-600" />
+                <p className="text-gray-500">{t("battle", "vault_locked")}</p>
+                <a href="/profile" className="text-amber-500 hover:text-amber-400 text-xs underline underline-offset-4">{t("battle", "vault_unlock_link")}</a>
+              </div>
+            ) : (
+              submission.extracted_text || t("battle", "no_text")
+            )}
           </div>
         </div>
 

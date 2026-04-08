@@ -53,6 +53,8 @@ export const dict: Record<string, any> = {
       crimes: "Structural Crimes",
       fix_dir: "Fix Direction",
       adjust: "Adjust & Resubmit (10 PTS)",
+      vault_locked: "CV text is encrypted. Unlock your vault in profile to view.",
+      vault_unlock_link: "Go to Profile → Unlock Vault",
     },
     progress: {
       title: "World Progress",
@@ -240,6 +242,8 @@ export const dict: Record<string, any> = {
       crimes: "结构罪行",
       fix_dir: "修改方向",
       adjust: "调整并重新提交 (10 积分)",
+      vault_locked: "简历文字已加密。请在个人主页解锁保险库后查看。",
+      vault_unlock_link: "前往个人主页 → 解锁保险库",
     },
     progress: {
       title: "世界进度",
