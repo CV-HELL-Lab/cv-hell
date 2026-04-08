@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { Users, Mail, Activity, Target } from "lucide-react";
+import { Users, Mail, Activity, Plus, Minus, Check, X } from "lucide-react";
 
 interface UserRecord {
   user_id: string;
@@ -14,20 +14,105 @@ interface UserRecord {
   created_at: string;
 }
 
+function PointsCell({ user, token, onUpdated }: { user: UserRecord; token: string; onUpdated: (id: string, pts: number) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [delta, setDelta] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const open = (sign: 1 | -1) => {
+    setDelta(sign === 1 ? "" : "-");
+    setError("");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const cancel = () => { setEditing(false); setDelta(""); setError(""); };
+
+  const confirm = async () => {
+    const n = parseInt(delta, 10);
+    if (isNaN(n) || n === 0) { setError("Enter a non-zero number"); return; }
+    setLoading(true);
+    try {
+      const res = await api.patch(`/admin/users/${user.user_id}/points`, { delta: n }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      onUpdated(user.user_id, res.data.points);
+      cancel();
+    } catch (e: any) {
+      setError(e.response?.data?.detail || "Failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="text-[var(--color-boss-accent)] font-bold font-mono">{user.points}</span>
+        <button
+          onClick={() => open(1)}
+          title="Add points"
+          className="p-0.5 text-green-600 hover:text-green-400 transition-colors"
+        >
+          <Plus size={13} />
+        </button>
+        <button
+          onClick={() => open(-1)}
+          title="Deduct points"
+          className="p-0.5 text-red-600 hover:text-red-400 transition-colors"
+        >
+          <Minus size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center space-x-1">
+        <input
+          ref={inputRef}
+          type="number"
+          value={delta}
+          onChange={e => setDelta(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") confirm(); if (e.key === "Escape") cancel(); }}
+          className="w-20 px-2 py-1 bg-[#1a1a1a] border border-[#444] text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
+          placeholder="±pts"
+        />
+        <button
+          onClick={confirm}
+          disabled={loading}
+          className="p-1 text-green-500 hover:text-green-300 disabled:opacity-50"
+        >
+          <Check size={14} />
+        </button>
+        <button onClick={cancel} className="p-1 text-gray-500 hover:text-gray-300">
+          <X size={14} />
+        </button>
+      </div>
+      {error && <span className="text-red-500 font-mono text-xs">{error}</span>}
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [token, setToken] = useState("");
   const router = useRouter();
 
   const fetchUsers = async (p: number) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("cvhell_admin_token");
+      const t = localStorage.getItem("cvhell_admin_token") || "";
+      setToken(t);
       const res = await api.get(`/admin/users?page=${p}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${t}` },
       });
       setUsers(res.data.items);
       setTotal(res.data.total);
@@ -43,9 +128,11 @@ export default function UsersPage() {
     }
   };
 
-  useEffect(() => {
-    fetchUsers(1);
-  }, []);
+  useEffect(() => { fetchUsers(1); }, []);
+
+  const handlePointsUpdated = (userId: string, newPoints: number) => {
+    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, points: newPoints } : u));
+  };
 
   if (error) return <div className="p-8 font-mono text-red-500">{error}</div>;
 
@@ -83,8 +170,8 @@ export default function UsersPage() {
                   <Mail size={14} className="text-gray-600" />
                   <span>{user.email}</span>
                 </td>
-                <td className="p-4 font-mono">
-                  <span className="text-[var(--color-boss-accent)] font-bold">{user.points}</span>
+                <td className="p-4">
+                  <PointsCell user={user} token={token} onUpdated={handlePointsUpdated} />
                 </td>
                 <td className="p-4 font-mono text-gray-300">
                   <span className="bg-[#222] px-2 py-1 rounded-sm border border-[#333] flex items-center w-max space-x-2">
@@ -97,9 +184,8 @@ export default function UsersPage() {
           </tbody>
         </table>
 
-        {/* Pagination controls */}
         <div className="mt-auto p-4 border-t border-[#333] bg-[#0a0a0a] flex justify-between items-center">
-          <button 
+          <button
             disabled={page <= 1 || loading}
             onClick={() => fetchUsers(page - 1)}
             className="px-4 py-2 border border-[#333] text-gray-400 font-mono text-xs uppercase hover:bg-[#222] disabled:opacity-50"
@@ -107,7 +193,7 @@ export default function UsersPage() {
             Previous
           </button>
           <span className="font-mono text-xs text-gray-500">Page {page} of {Math.ceil(total / 20) || 1}</span>
-          <button 
+          <button
             disabled={page * 20 >= total || loading}
             onClick={() => fetchUsers(page + 1)}
             className="px-4 py-2 border border-[#333] text-gray-400 font-mono text-xs uppercase hover:bg-[#222] disabled:opacity-50"

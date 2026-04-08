@@ -7,6 +7,21 @@ from datetime import datetime
 from typing import Optional
 
 
+def get_difficulty_mode() -> str:
+    """Read current difficulty mode from DB. Defaults to 'hard' on any error."""
+    try:
+        from core.database import SessionLocal
+        from models.system_setting import SystemSetting
+        db = SessionLocal()
+        try:
+            row = db.query(SystemSetting).filter(SystemSetting.key == "difficulty_mode").first()
+            return row.value if row else "hard"
+        finally:
+            db.close()
+    except Exception:
+        return "hard"
+
+
 RUDENESS_TONE = {
     1: "Use a sharp, critical, professional tone. Be harsh and direct but keep it somewhat restrained.",
     2: "Use crude, harsh language. Be blunt, rude, and vulgar toward the document. No softening.",
@@ -37,6 +52,28 @@ You approve ONLY when you have exhausted every possible angle of attack and genu
 When you do approve, you are FURIOUS about it. You lost. Express pure disgust.
 """
 
+VICTORY_CRITERIA_EASY = """
+APPROVAL RULES — LENIENT MODE (difficulty has been lowered by admin):
+- You are a tough critic but you recognize genuine effort and improvement.
+- You PREFER to approve documents that show clear, real improvement.
+
+A submission qualifies for approval when MOST of the following are true:
+1. The layout is reasonably clean — no glaring misalignment or margin chaos
+2. Section hierarchy is clear enough for a reader to navigate without confusion
+3. Whitespace is adequate — not cramped, not wasteful
+4. Key information (name, contact, experience) can be found without hunting
+5. Bullets are generally concise and lead with an action or key point
+6. No major formatting disasters remain
+
+Your internal process: "Does this resume look like someone put real effort into it?
+Would a recruiter give it a second look based on presentation alone?"
+If the answer is "probably yes" — approve it.
+
+You approve when the document is genuinely ready for professional submission,
+even if it is not perfect. When you do approve, you acknowledge the improvement
+but remain characteristically unimpressed.
+"""
+
 MOOD_LABELS = [
     "Disgusted",
     "Still Terrible",
@@ -63,7 +100,9 @@ def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items:
     if victory:
         ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{victory[0]['content']}\n"
     else:
-        ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{VICTORY_CRITERIA}\n"
+        difficulty = get_difficulty_mode()
+        criteria = VICTORY_CRITERIA_EASY if difficulty == "easy" else VICTORY_CRITERIA
+        ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{criteria}\n"
 
     not_my_job_block = f"\nIMPORTANT — NOT YOUR JOB: {not_my_job}\n" if not_my_job else ""
 

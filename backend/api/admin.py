@@ -237,6 +237,62 @@ def list_bosses(db: Session = Depends(get_db), _: str = Depends(get_admin)):
     ]
 
 
+class AdjustPointsRequest(BaseModel):
+    delta: int  # positive = add, negative = deduct
+
+
+@router.patch("/users/{user_id}/points")
+def adjust_user_points(
+    user_id: uuid.UUID,
+    body: AdjustPointsRequest,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    if body.delta == 0:
+        raise HTTPException(status_code=400, detail="delta cannot be 0")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.points = max(0, user.points + body.delta)
+    db.add(PointTransaction(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        amount=body.delta,
+        type="admin_adjustment",
+    ))
+    db.commit()
+    db.refresh(user)
+    return {"user_id": str(user.id), "points": user.points}
+
+
+@router.get("/settings")
+def get_settings(db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    from models.system_setting import SystemSetting
+    rows = db.query(SystemSetting).all()
+    return {r.key: r.value for r in rows}
+
+
+@router.patch("/settings")
+def update_settings(
+    body: dict,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_admin),
+):
+    from models.system_setting import SystemSetting
+    allowed_keys = {"difficulty_mode"}
+    for key, value in body.items():
+        if key not in allowed_keys:
+            raise HTTPException(status_code=400, detail=f"Unknown setting key: {key}")
+        row = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+        if row:
+            row.value = str(value)
+        else:
+            db.add(SystemSetting(key=key, value=str(value)))
+    db.commit()
+    rows = db.query(SystemSetting).all()
+    return {r.key: r.value for r in rows}
+
+
 class BossCreateRequest(BaseModel):
     name: str
     slug: str

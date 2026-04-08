@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { Activity, Users, FileText, CheckCircle, ShieldAlert, RotateCcw, Bomb } from "lucide-react";
+import { Activity, Users, FileText, CheckCircle, ShieldAlert, RotateCcw, Bomb, Gauge } from "lucide-react";
 
 interface Stats {
   current_boss: { name: string; status: string } | null;
@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [resetting, setResetting] = useState(false);
   const [defeating, setDefeating] = useState(false);
+  const [difficultyMode, setDifficultyMode] = useState<"hard" | "easy">("hard");
+  const [difficultyLoading, setDifficultyLoading] = useState(false);
   const router = useRouter();
 
   const fetchStats = async () => {
@@ -29,10 +31,12 @@ export default function AdminDashboard() {
     }
 
     try {
-      const res = await api.get("/admin/stats", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setStats(res.data);
+      const [statsRes, settingsRes] = await Promise.all([
+        api.get("/admin/stats", { headers: { Authorization: `Bearer ${token}` } }),
+        api.get("/admin/settings", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      setStats(statsRes.data);
+      setDifficultyMode(settingsRes.data.difficulty_mode === "easy" ? "easy" : "hard");
     } catch (err: any) {
       if (err.response?.status === 401) {
         localStorage.removeItem("cvhell_admin_token");
@@ -42,6 +46,22 @@ export default function AdminDashboard() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleDifficulty = async () => {
+    const newMode = difficultyMode === "hard" ? "easy" : "hard";
+    setDifficultyLoading(true);
+    try {
+      const token = localStorage.getItem("cvhell_admin_token");
+      await api.patch("/admin/settings", { difficulty_mode: newMode }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDifficultyMode(newMode);
+    } catch {
+      alert("Failed to update difficulty mode.");
+    } finally {
+      setDifficultyLoading(false);
     }
   };
 
@@ -165,6 +185,33 @@ export default function AdminDashboard() {
       {/* Admin Tools */}
       <div className="mt-12 border-t border-amber-900/30 pt-8">
         <h3 className="text-amber-500 font-bold uppercase tracking-widest mb-4">Admin Tools</h3>
+
+        {/* Difficulty Mode Toggle */}
+        <div className="bg-amber-950/20 border border-amber-900/40 p-6 rounded-sm flex justify-between items-center mb-4">
+          <div>
+            <h4 className="text-white font-bold uppercase tracking-widest text-sm flex items-center">
+              <Gauge size={16} className="mr-2 text-amber-400" /> Boss Difficulty Mode
+            </h4>
+            <p className="text-gray-500 font-mono text-xs mt-1 max-w-xl">
+              <span className={difficultyMode === "hard" ? "text-red-400 font-bold" : "text-gray-500"}>HARD</span>
+              {" — "}perfectionist standard, almost impossible to pass.{"  "}
+              <span className={difficultyMode === "easy" ? "text-green-400 font-bold" : "text-gray-500"}>EASY</span>
+              {" — "}lenient, approves genuine improvement. Takes effect on the next submission.
+            </p>
+          </div>
+          <button
+            onClick={toggleDifficulty}
+            disabled={difficultyLoading}
+            className={`shrink-0 relative w-32 h-10 border font-mono text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50 ${
+              difficultyMode === "hard"
+                ? "bg-red-950/60 border-red-700 text-red-300 hover:bg-red-900/60"
+                : "bg-green-950/60 border-green-700 text-green-300 hover:bg-green-900/60"
+            }`}
+          >
+            {difficultyLoading ? "..." : difficultyMode === "hard" ? "⚔ HARD" : "✓ EASY"}
+          </button>
+        </div>
+
         <div className="bg-amber-950/20 border border-amber-900/40 p-6 rounded-sm flex justify-between items-center">
           <div>
             <h4 className="text-white font-bold uppercase tracking-widest text-sm">Force Defeat Current Boss</h4>
