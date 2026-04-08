@@ -580,12 +580,37 @@ status_services() {
 
 mkdir -p logs
 
+update_services() {
+  echo ""
+  echo "═══════════════════════════════════════"
+  echo "  CV HELL — 更新"
+  echo "═══════════════════════════════════════"
+
+  stop_services
+
+  echo "[1/3] 拉取最新代码..."
+  git pull || { echo "[ERROR] git pull 失败，请检查网络或冲突"; exit 1; }
+
+  echo "[2/3] 重新构建前端..."
+  cd frontend
+  rm -rf .next
+  BACKEND_URL="http://127.0.0.1:$BACKEND_PORT" npm run build || { echo "[ERROR] 前端构建失败"; exit 1; }
+  cd ..
+
+  echo "[3/3] 启动服务..."
+  start_services
+
+  echo ""
+  echo "[OK] 更新完成！"
+}
+
 case "${1:-start}" in
   start)   start_services ;;
   stop)    stop_services ;;
   restart) stop_services; sleep 1; start_services ;;
   status)  status_services ;;
-  *)       echo "用法: $0 {start|stop|restart|status}" ;;
+  update)  update_services ;;
+  *)       echo "用法: $0 {start|stop|restart|status|update}" ;;
 esac
 STARTEOF
   fi
