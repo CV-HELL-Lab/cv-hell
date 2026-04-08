@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useLanguage } from "@/context/LanguageContext";
-import { ArrowRight, Trophy, Skull } from "lucide-react";
+import { ArrowRight, Trophy, Skull, ShieldCheck } from "lucide-react";
 
 interface BossData {
   id: string;
@@ -98,6 +98,17 @@ export default function HomePage() {
             {t("home", "upload_desc")}
           </p>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+        <Link
+          href="/terms"
+          className="flex items-center space-x-1.5 text-gray-600 hover:text-gray-400 text-xs font-mono transition"
+        >
+          <ShieldCheck size={12} />
+          <span>{t("disclaimer", "terms_link")}</span>
+        </Link>
       </div>
     </div>
   );

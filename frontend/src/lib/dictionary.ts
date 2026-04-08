@@ -145,7 +145,14 @@ export const dict: Record<string, any> = {
       p3: "The AI's harsh language is part of the game experience and does not reflect a genuine assessment of your abilities, intelligence, or worth.",
       p4: "By continuing, you acknowledge that this is an entertainment product using AI-generated content, and the feedback should not be taken as professional career advice.",
       btn: "I Understand — Enter Hell",
-    }
+      privacy_title: "Privacy & Data Protection",
+      privacy_p1: "We take your CV privacy seriously. Here's exactly what happens to your data:",
+      privacy_b1: "Original CV files (PDF/DOCX) are deleted from the server immediately after text extraction",
+      privacy_b2: "Page images generated for AI analysis are deleted right after evaluation completes",
+      privacy_b3: "Only extracted text and Boss responses are stored — no original files are retained",
+      privacy_p2: "Optional: Enable the CV Vault in your profile to encrypt stored text with your own password using AES-256-GCM. The server operator cannot read encrypted content.",
+      terms_link: "Terms & Privacy",
+    },
   },
   zh: {
     nav: {
@@ -293,6 +300,13 @@ export const dict: Record<string, any> = {
       p3: "AI 的刻薄用语是游戏体验的一部分，不代表对你个人能力、智商或价值的真实评估。",
       p4: "继续访问即表示您知晓这是一个使用 AI 生成内容的娱乐产品，其中的反馈不应被视为专业的职业建议。",
       btn: "我已了解 — 进入地狱",
+      privacy_title: "隐私与数据保护",
+      privacy_p1: "我们认真对待你的简历隐私。以下是你的数据的处理方式：",
+      privacy_b1: "原始简历文件（PDF/DOCX）在提取文字后立即从服务器删除",
+      privacy_b2: "AI 分析时生成的页面图片在评估完成后立即删除",
+      privacy_b3: "服务器仅存储提取的文字和 Boss 回复，不保留任何原始文件",
+      privacy_p2: "可选：在个人主页开启 CV 保险库，使用 AES-256-GCM 以你自己的密码加密存储文字。服务器管理员无法读取加密内容。",
+      terms_link: "条款与隐私",
     }
   }
 };
