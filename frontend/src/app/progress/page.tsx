@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { Skull, CheckCircle2, Lock, ArrowRight, Globe } from "lucide-react";
+import { Skull, CheckCircle2, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -21,7 +21,7 @@ interface BossProgress {
 export default function ProgressPage() {
   const [bosses, setBosses] = useState<BossProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const { lang, setLang, t } = useLanguage();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -135,44 +135,6 @@ export default function ProgressPage() {
           })}
         </div>
       )}
-
-      {/* Settings */}
-      <div className="mt-16 border-t border-[#4f3c32] pt-8">
-        <h2 className="text-xl font-bold text-white uppercase tracking-wider mb-6 flex items-center space-x-2">
-          <Globe size={20} className="text-gray-400" />
-          <span>{t("settings", "title")}</span>
-        </h2>
-        <div className="bg-[#241b17] border border-[#3d2e26] p-6 rounded-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white font-bold text-sm uppercase tracking-wider">{t("settings", "language")}</p>
-              <p className="text-gray-500 text-xs mt-1 font-mono">{t("settings", "language_desc")}</p>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setLang("zh")}
-                className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border transition ${
-                  lang === "zh"
-                    ? "bg-amber-900 border-amber-700 text-white"
-                    : "border-[#3d2e26] text-gray-500 hover:text-white hover:bg-[#3d2e26]"
-                }`}
-              >
-                中文
-              </button>
-              <button
-                onClick={() => setLang("en")}
-                className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border transition ${
-                  lang === "en"
-                    ? "bg-amber-900 border-amber-700 text-white"
-                    : "border-[#3d2e26] text-gray-500 hover:text-white hover:bg-[#3d2e26]"
-                }`}
-              >
-                English
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

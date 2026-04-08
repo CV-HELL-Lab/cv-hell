@@ -108,6 +108,12 @@ def upload_resume(
         extracted_text = parsed["text"]
         image_paths = parsed["image_paths"]
         image_base64 = parsed["image_base64"]
+        # Delete original uploaded file immediately after parsing — we only keep extracted text
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
 
     # Get next version number for this user+boss
     last = (
@@ -223,6 +229,17 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
     except EvaluationError as e:
         logger.error(f"Evaluation failed for submission {submission_id}: {e}")
         raise HTTPException(status_code=503, detail="The boss refused to respond. Try again.")
+    finally:
+        # Delete image files immediately after LLM call — CV images are never stored permanently
+        for img_path in image_paths:
+            if img_path and os.path.exists(img_path):
+                try:
+                    os.remove(img_path)
+                except OSError:
+                    pass
+        # Clear image_paths from DB record (original file was already deleted at upload time)
+        submission.image_paths = "[]"
+        submission.original_file_path = None
 
     # --- Step 3: LLM succeeded — now deduct points + persist in one atomic commit ---
     user = db.query(User).filter(User.id == user_id).with_for_update().first()

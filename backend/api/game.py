@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from core.database import get_db
 from core.config import settings
@@ -25,6 +26,56 @@ def get_me(current_user: User = Depends(get_current_user)):
         "display_name": current_user.display_name,
         "email": current_user.email,
         "points": current_user.points,
+    }
+
+
+@router.get("/me/history")
+def get_my_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from models.boss_response import BossResponse
+    from models.boss_defeat import BossDefeat
+    from sqlalchemy import func as sqlfunc
+
+    subs = (
+        db.query(Submission)
+        .filter(Submission.user_id == current_user.id)
+        .order_by(Submission.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    total_submissions = db.query(func.count(Submission.id)).filter(
+        Submission.user_id == current_user.id
+    ).scalar() or 0
+
+    bosses_defeated = db.query(func.count(BossDefeat.id)).filter(
+        BossDefeat.user_id == current_user.id
+    ).scalar() or 0
+
+    history = []
+    for s in subs:
+        r = s.boss_response
+        history.append({
+            "submission_id": str(s.id),
+            "boss_name": s.boss.name if s.boss else "Unknown",
+            "boss_slug": s.boss.slug if s.boss else "",
+            "version_number": s.version_number,
+            "created_at": s.created_at.isoformat(),
+            "mood": r.mood if r else None,
+            "mood_level": r.mood_level if r else None,
+            "approved": r.approved if r else False,
+            "roast_opening": r.roast_opening if r else None,
+        })
+
+    return {
+        "stats": {
+            "total_submissions": total_submissions,
+            "bosses_defeated": bosses_defeated,
+            "points": current_user.points,
+        },
+        "history": history,
     }
 
 

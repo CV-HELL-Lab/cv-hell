@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { LogOut, Zap, Trophy, Activity, Target, Skull } from "lucide-react";
+import { LogOut, Zap, Trophy, Activity, Target, Skull, User } from "lucide-react";
 import api from "@/lib/api";
 
 export default function NavBar() {
@@ -60,15 +60,16 @@ export default function NavBar() {
             <div className="flex-1 flex items-center justify-end space-x-4">
               {user ? (
                 <>
-                  <div className="flex flex-col items-end">
-                    <span className="text-sm font-semibold text-gray-200">
-                      {user.display_name}
+                  <Link href="/profile" className="flex flex-col items-end hover:opacity-80 transition">
+                    <span className="text-sm font-semibold text-gray-200 flex items-center space-x-1">
+                      <User size={13} className="text-gray-400" />
+                      <span>{user.display_name}</span>
                     </span>
                     <div className="flex items-center space-x-1 text-[var(--color-terminal-green)]">
                       <Zap size={14} className="fill-current" />
                       <span className="text-xs font-bold tracking-widest">{user.points} {t("nav", "pts")}</span>
                     </div>
-                  </div>
+                  </Link>
                 <button
                   onClick={() => {
                     logout();

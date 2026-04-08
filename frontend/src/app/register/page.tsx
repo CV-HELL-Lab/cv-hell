@@ -7,6 +7,7 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { Globe } from "lucide-react";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -16,7 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
-  const { t } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +55,26 @@ export default function RegisterPage() {
   return (
     <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
       <div className="w-full max-w-md bg-[#241b17] border border-amber-900/30 p-8 rounded-sm shadow-[0_0_40px_rgba(239,68,68,0.05)]">
-        <h2 className="text-3xl font-bold mb-2 text-white uppercase tracking-wide">{t("auth", "reg_title")}</h2>
-        <p className="text-gray-400 mb-8 font-mono text-sm">Create an account. Get 100 points. Lose them all.</p>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-3xl font-bold text-white uppercase tracking-wide">{t("auth", "reg_title")}</h2>
+          <div className="flex items-center space-x-1 border border-[#3d2e26] rounded-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setLang("zh")}
+              className={`px-3 py-1.5 text-xs font-bold transition ${lang === "zh" ? "bg-amber-900 text-white" : "text-gray-500 hover:text-white hover:bg-[#3d2e26]"}`}
+            >
+              中文
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang("en")}
+              className={`px-3 py-1.5 text-xs font-bold transition ${lang === "en" ? "bg-amber-900 text-white" : "text-gray-500 hover:text-white hover:bg-[#3d2e26]"}`}
+            >
+              EN
+            </button>
+          </div>
+        </div>
+        <p className="text-gray-400 mb-8 font-mono text-sm">{t("auth", "reg_desc")}</p>
 
         {error && (
           <div className="mb-6 p-4 bg-amber-950/30 border border-amber-500/50 text-amber-500 flex items-start space-x-3 rounded-sm">
