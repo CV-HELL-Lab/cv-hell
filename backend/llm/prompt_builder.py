@@ -97,12 +97,16 @@ def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items:
         samples = "\n\n".join(r["content"] for r in excellent)
         ref_block += f"\n[REFERENCE: EXCELLENT RESUME STANDARD]\n{samples}\n"
 
-    if victory:
-        ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{victory[0]['content']}\n"
+    difficulty = get_difficulty_mode()
+    if difficulty == "easy":
+        # Easy mode always overrides any reference_pool victory_descriptor
+        criteria = VICTORY_CRITERIA_EASY
+    elif victory:
+        # Hard mode: use custom victory_descriptor from reference_pool if available
+        criteria = victory[0]['content']
     else:
-        difficulty = get_difficulty_mode()
-        criteria = VICTORY_CRITERIA_EASY if difficulty == "easy" else VICTORY_CRITERIA
-        ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{criteria}\n"
+        criteria = VICTORY_CRITERIA
+    ref_block += f"\n[REFERENCE: VICTORY CRITERIA]\n{criteria}\n"
 
     not_my_job_block = f"\nIMPORTANT — NOT YOUR JOB: {not_my_job}\n" if not_my_job else ""
 
