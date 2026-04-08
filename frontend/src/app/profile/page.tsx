@@ -65,11 +65,16 @@ export default function ProfilePage() {
     setVaultLoading(true);
     setVaultError("");
     try {
+      if (!crypto?.subtle) {
+        setVaultError(t("vault", "error_https"));
+        return;
+      }
       const key = await deriveKey(vaultPassword, user.user_id);
       await saveKeyToSession(key);
       setVaultUnlocked(true);
       setVaultPassword("");
-    } catch {
+    } catch (err) {
+      console.error("Vault unlock error:", err);
       setVaultError(t("vault", "error"));
     } finally {
       setVaultLoading(false);

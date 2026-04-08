@@ -46,7 +46,7 @@ export async function deriveKey(password: string, userId: string): Promise<Crypt
     { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     keyMaterial,
     { name: "AES-GCM", length: 256 },
-    false,
+    true,  // extractable=true so we can store it in sessionStorage
     ["encrypt", "decrypt"],
   );
 }
