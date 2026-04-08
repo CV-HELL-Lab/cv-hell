@@ -28,7 +28,7 @@ interface Stats {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
@@ -40,6 +40,7 @@ export default function ProfilePage() {
   const [vaultLoading, setVaultLoading] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.push("/login");
       return;

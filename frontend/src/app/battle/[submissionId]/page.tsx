@@ -34,7 +34,7 @@ interface SubmissionData {
 export default function BattlePage({ params }: { params: Promise<{ submissionId: string }> }) {
   const { submissionId } = use(params);
   const router = useRouter();
-  const { user, updatePoints } = useAuth();
+  const { user, updatePoints, loading: authLoading } = useAuth();
   const { lang, t } = useLanguage();
   
   const [submission, setSubmission] = useState<SubmissionData | null>(null);
@@ -85,12 +85,13 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
       }
     };
     
+    if (authLoading) return;
     if (user) {
       fetchSubmission();
     } else {
       router.push("/login");
     }
-  }, [submissionId, user, router]);
+  }, [submissionId, user, authLoading, router]);
 
   const triggerEvaluation = async (bossId: string) => {
     setEvaluating(true);
