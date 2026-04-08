@@ -7,7 +7,7 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { Zap, Skull, CheckCircle2, Globe, User, Trophy, Swords, Clock, Lock, LockOpen, ShieldCheck } from "lucide-react";
-import { deriveKey, saveKeyToSession, loadKeyFromSession, clearKeyFromSession, isVaultUnlocked } from "@/lib/vault";
+import { deriveKey, saveKeyToSession, clearKeyFromSession, isVaultUnlocked } from "@/lib/vault";
 
 interface HistoryEntry {
   submission_id: string;
@@ -65,10 +65,6 @@ export default function ProfilePage() {
     setVaultLoading(true);
     setVaultError("");
     try {
-      if (!crypto?.subtle) {
-        setVaultError(t("vault", "error_https"));
-        return;
-      }
       const key = await deriveKey(vaultPassword, user.user_id);
       await saveKeyToSession(key);
       setVaultUnlocked(true);
