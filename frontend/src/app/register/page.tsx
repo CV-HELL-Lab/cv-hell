@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Globe } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Globe } from "lucide-react";
+import { deriveKey, saveKeyToSession } from "@/lib/vault";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -43,7 +43,10 @@ export default function RegisterPage() {
         email,
         points: res.data.points,
       });
-      
+
+      // Auto-derive vault key from registration password
+      deriveKey(password, res.data.user_id).then(saveKeyToSession).catch(() => {});
+
       router.push("/");
     } catch (err: any) {
       setError(err.response?.data?.detail || "Registration failed. Try again.");

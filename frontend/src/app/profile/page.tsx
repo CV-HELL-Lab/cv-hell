@@ -209,22 +209,20 @@ export default function ProfilePage() {
               </button>
             </div>
           ) : (
+            /* Session expired — re-enter login password to restore vault key */
             <form onSubmit={handleVaultUnlock} className="space-y-4">
+              <p className="text-gray-400 text-xs font-mono">{t("vault", "session_expired")}</p>
               <div>
-                <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">{t("vault", "password_label")}</label>
+                <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">{t("auth", "password")}</label>
                 <input
                   type="password"
                   value={vaultPassword}
                   onChange={(e) => setVaultPassword(e.target.value)}
-                  placeholder={t("vault", "password_placeholder")}
+                  placeholder="••••••••"
                   className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] font-mono text-sm transition"
                 />
               </div>
               {vaultError && <p className="text-red-400 text-xs font-mono">{vaultError}</p>}
-              <div className="flex items-start space-x-3 text-xs text-gray-600 font-mono bg-[#17110e] border border-[#3d2e26] p-3 rounded-sm">
-                <ShieldCheck size={14} className="text-gray-500 shrink-0 mt-0.5" />
-                <p>{t("vault", "warning")}</p>
-              </div>
               <button
                 type="submit"
                 disabled={vaultLoading || !vaultPassword}

@@ -7,6 +7,7 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { deriveKey, saveKeyToSession } from "@/lib/vault";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,12 +25,13 @@ export default function LoginPage() {
 
     try {
       const res = await api.post("/auth/login", { email, password });
-      login(res.data.token, {
+      const userData = {
         user_id: res.data.user_id,
         display_name: res.data.display_name,
         email,
-        points: res.data.points || 100, // Fallback if points not returned in login
-      });
+        points: res.data.points || 100,
+      };
+      login(res.data.token, userData);
       // Fetch me to get fresh points
       try {
         const meRes = await api.get("/me", {
@@ -39,7 +41,10 @@ export default function LoginPage() {
       } catch (err) {
         console.error("Failed to fetch fresh user data after login", err);
       }
-      
+
+      // Auto-derive vault key from login password — runs silently in background
+      deriveKey(password, res.data.user_id).then(saveKeyToSession).catch(() => {});
+
       router.push("/");
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to login. Try again.");

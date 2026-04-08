@@ -124,6 +124,7 @@ export const dict: Record<string, any> = {
       unlocked_desc: "Future submissions will be automatically encrypted before storage.",
       error: "Failed to derive key. Try again.",
       error_https: "Web Crypto API requires HTTPS. Vault is unavailable over plain HTTP.",
+      session_expired: "Vault session expired (tab was closed). Re-enter your login password to restore the vault key.",
       encrypting: "Encrypting...",
       encrypted_badge: "Encrypted",
     },
@@ -151,7 +152,7 @@ export const dict: Record<string, any> = {
       privacy_b1: "Original CV files (PDF/DOCX) are deleted from the server immediately after text extraction",
       privacy_b2: "Page images generated for AI analysis are deleted right after evaluation completes",
       privacy_b3: "Only extracted text and Boss responses are stored — no original files are retained",
-      privacy_p2: "Optional: Enable the CV Vault in your profile to encrypt stored text with your own password using AES-256-GCM. The server operator cannot read encrypted content.",
+      privacy_p2: "CV Vault is built-in: your login password is used to encrypt stored CV text locally before it reaches the server. The encryption key is derived in your browser and never transmitted.",
       terms_link: "Terms & Privacy",
     },
   },
@@ -280,6 +281,7 @@ export const dict: Record<string, any> = {
       unlocked_desc: "之后的提交将在储存前自动加密。",
       error: "密钥生成失败，请重试。",
       error_https: "Web 加密 API 需要 HTTPS。在纯 HTTP 下保险库不可用。",
+      session_expired: "保险库会话已过期（标签页已关闭）。重新输入登录密码以恢复密钥。",
       encrypting: "加密中...",
       encrypted_badge: "已加密",
     },
@@ -307,7 +309,7 @@ export const dict: Record<string, any> = {
       privacy_b1: "原始简历文件（PDF/DOCX）在提取文字后立即从服务器删除",
       privacy_b2: "AI 分析时生成的页面图片在评估完成后立即删除",
       privacy_b3: "服务器仅存储提取的文字和 Boss 回复，不保留任何原始文件",
-      privacy_p2: "可选：在个人主页开启 CV 保险库，使用 AES-256-GCM 以你自己的密码加密存储文字。服务器管理员无法读取加密内容。",
+      privacy_p2: "CV 保险库已内置：你的登录密码用于在本地加密简历文字，加密密钥在浏览器中派生，从不传输至服务器。服务器管理员无法读取加密内容。",
       terms_link: "条款与隐私",
     }
   }
