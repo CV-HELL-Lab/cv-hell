@@ -141,7 +141,7 @@ def upload_resume(
     }
 
 
-def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, submission_id: uuid.UUID) -> dict:
+def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, submission_id: uuid.UUID, language: str = "en") -> dict:
     """
     Main evaluation flow.
     Step 1: Validate user has enough points (no deduction yet).
@@ -218,6 +218,7 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
             image_base64_list=image_base64,
             prior_versions=prior_versions,
             reference_items=reference_items,
+            language=language,
         )
     except EvaluationError as e:
         logger.error(f"Evaluation failed for submission {submission_id}: {e}")

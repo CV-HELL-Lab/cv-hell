@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { LogOut, Zap, Trophy, Activity, Target, Skull, Globe } from "lucide-react";
+import { LogOut, Zap, Trophy, Activity, Target, Skull } from "lucide-react";
 import api from "@/lib/api";
 
 export default function NavBar() {
   const { user, logout } = useAuth();
-  const { lang, setLang, t } = useLanguage();
+  const { t } = useLanguage();
   const [globalPrizePool, setGlobalPrizePool] = useState<number | null>(null);
 
   useEffect(() => {
@@ -58,15 +58,6 @@ export default function NavBar() {
             </div>
 
             <div className="flex-1 flex items-center justify-end space-x-4">
-              <button 
-                onClick={() => setLang(lang === "en" ? "zh" : "en")}
-                className="flex items-center space-x-1 text-gray-500 hover:text-white border border-[#3d2e26] hover:bg-[#3d2e26] px-2 py-1.5 rounded-sm transition mr-2"
-                title="Toggle Language"
-              >
-                <Globe size={16} />
-                <span className="text-xs font-bold">{lang === "en" ? "ZH" : "EN"}</span>
-              </button>
-
               {user ? (
                 <>
                   <div className="flex flex-col items-end">

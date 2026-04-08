@@ -32,7 +32,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
   const { submissionId } = use(params);
   const router = useRouter();
   const { user, updatePoints } = useAuth();
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   
   const [submission, setSubmission] = useState<SubmissionData | null>(null);
   const [bossSlug, setBossSlug] = useState<string>("");
@@ -77,7 +77,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
     setEvaluating(true);
     setError("");
     try {
-      const res = await api.post(`/submit/${bossId}`, { submission_id: submissionId });
+      const res = await api.post(`/submit/${bossId}`, { submission_id: submissionId, language: lang });
       
       // Update points and prize pool
       updatePoints(res.data.points_remaining);

@@ -102,6 +102,11 @@ export const dict: Record<string, any> = {
       has_account: "Already bound?",
       login_link: "Login here",
     },
+    settings: {
+      title: "Settings",
+      language: "Language",
+      language_desc: "Affects UI text and Boss response language.",
+    },
     disclaimer: {
       title: "Disclaimer",
       p1_1: "CV HELL",
@@ -220,6 +225,11 @@ export const dict: Record<string, any> = {
       register: "注册",
       has_account: "已经绑定了灵魂？",
       login_link: "在这里登录",
+    },
+    settings: {
+      title: "设置",
+      language: "语言",
+      language_desc: "影响界面文字和 Boss 回复语言。",
     },
     disclaimer: {
       title: "免责声明",

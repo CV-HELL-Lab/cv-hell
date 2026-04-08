@@ -3,6 +3,7 @@ Builds the LLM evaluation payload for a boss submission.
 Assembles: boss persona + rudeness tone + reference pool + prior versions + resume input.
 """
 import json
+from datetime import datetime
 from typing import Optional
 
 
@@ -46,7 +47,7 @@ MOOD_LABELS = [
 ]
 
 
-def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items: list[dict]) -> str:
+def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items: list[dict], language: str = "en") -> str:
     tone = RUDENESS_TONE.get(rudeness_level, RUDENESS_TONE[2])
     attacks = "\n".join(f"- {a}" for a in boss_config.get("signature_attacks", []))
     not_my_job = boss_config.get("not_my_job", "")
@@ -66,7 +67,18 @@ def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items:
 
     not_my_job_block = f"\nIMPORTANT — NOT YOUR JOB: {not_my_job}\n" if not_my_job else ""
 
+    now = datetime.now().strftime("%Y-%m-%d")
+    lang_instruction = (
+        "You MUST respond entirely in Chinese (简体中文). All JSON string values must be in Chinese."
+        if language == "zh"
+        else "You MUST respond entirely in English. All JSON string values must be in English."
+    )
+
     return f"""You are {boss_config['name']}, a brutal CV critic.
+
+CURRENT DATE: {now}. Use this when judging whether dates in the resume are past, present, or future.
+
+{lang_instruction}
 
 Your obsession: {boss_config['obsession']}
 Your personality: {boss_config['personality']}

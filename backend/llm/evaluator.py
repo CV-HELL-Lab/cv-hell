@@ -21,12 +21,13 @@ def evaluate_resume(
     image_base64_list: list[str],
     prior_versions: list[dict],
     reference_items: list[dict],
+    language: str = "en",
 ) -> dict:
     """
     Call LLM and return parsed boss evaluation result.
     Raises EvaluationError on failure.
     """
-    system_prompt = build_system_prompt(boss_config, rudeness_level, reference_items)
+    system_prompt = build_system_prompt(boss_config, rudeness_level, reference_items, language=language)
     user_content = build_user_message(extracted_text, image_base64_list, prior_versions)
 
     try:

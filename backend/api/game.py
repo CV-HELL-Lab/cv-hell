@@ -65,6 +65,7 @@ async def upload(
 
 class SubmitRequest(BaseModel):
     submission_id: uuid.UUID
+    language: str = "en"
 
 
 @router.post("/submit/{boss_id}")
@@ -74,7 +75,8 @@ def submit(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return submit_for_evaluation(db, current_user.id, boss_id, body.submission_id)
+    lang = body.language if body.language in ("en", "zh") else "en"
+    return submit_for_evaluation(db, current_user.id, boss_id, body.submission_id, language=lang)
 
 
 @router.get("/boss/current")
