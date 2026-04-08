@@ -407,7 +407,7 @@ setup_frontend() {
 
   if [[ "$RUN_MODE" == "prod" ]]; then
     info "构建生产版本..."
-    NEXT_PUBLIC_API_URL="http://127.0.0.1:${BACKEND_PORT}" npm run build
+    BACKEND_URL="http://127.0.0.1:${BACKEND_PORT}" npm run build
     ok "前端生产构建完成"
   fi
 
@@ -441,7 +441,7 @@ sleep 2
 # 启动前端
 echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
 cd frontend
-export NEXT_PUBLIC_API_URL=http://127.0.0.1:$BACKEND_PORT
+export BACKEND_URL=http://127.0.0.1:$BACKEND_PORT
 npx next dev -p $FRONTEND_PORT &
 FRONTEND_PID=\$!
 cd ..
@@ -475,16 +475,27 @@ FRONTEND_PORT=PLACEHOLDER_FRONTEND_PORT
 PID_FILE="$SCRIPT_DIR/.cvhell.pids"
 
 stop_services() {
+  echo "[INFO] 停止服务..."
+
+  # 先通过 PID 文件杀
   if [[ -f "$PID_FILE" ]]; then
-    echo "[INFO] 停止服务..."
     while read -r pid; do
       kill "$pid" 2>/dev/null && echo "  已停止 PID $pid" || true
     done < "$PID_FILE"
     rm -f "$PID_FILE"
-    echo "[OK] 服务已停止"
-  else
-    echo "[INFO] 没有运行中的服务"
   fi
+
+  # 再通过端口杀残留进程
+  for port in $BACKEND_PORT $FRONTEND_PORT; do
+    local pids
+    pids=$(lsof -t -i:"$port" 2>/dev/null || ss -tlnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' || true)
+    for pid in $pids; do
+      kill -9 "$pid" 2>/dev/null && echo "  已清理端口 $port 上的进程 $pid" || true
+    done
+  done
+
+  sleep 1
+  echo "[OK] 服务已停止"
 }
 
 start_services() {
@@ -511,7 +522,7 @@ start_services() {
 
   echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
   cd frontend
-  nohup npx next start -p $FRONTEND_PORT > ../logs/frontend.log 2>&1 &
+  BACKEND_URL="http://127.0.0.1:$BACKEND_PORT" nohup npx next start -p $FRONTEND_PORT > ../logs/frontend.log 2>&1 &
   echo $! >> "$PID_FILE"
   cd ..
 
