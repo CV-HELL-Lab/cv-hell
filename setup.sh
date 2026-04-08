@@ -477,24 +477,42 @@ PID_FILE="$SCRIPT_DIR/.cvhell.pids"
 stop_services() {
   echo "[INFO] 停止服务..."
 
-  # 先通过 PID 文件杀
+  # 先通过 PID 文件杀（包括所有子进程）
   if [[ -f "$PID_FILE" ]]; then
     while read -r pid; do
+      # 杀掉进程及其所有子进程
+      pkill -P "$pid" 2>/dev/null || true
       kill "$pid" 2>/dev/null && echo "  已停止 PID $pid" || true
     done < "$PID_FILE"
     rm -f "$PID_FILE"
   fi
 
-  # 再通过端口杀残留进程
+  sleep 1
+
+  # 通过端口强杀残留进程（最可靠的方式）
   for port in $BACKEND_PORT $FRONTEND_PORT; do
+    # 方法1: fuser（Linux 最可靠）
+    fuser -k "$port/tcp" 2>/dev/null && echo "  已清理端口 $port (fuser)" || true
+    # 方法2: lsof 兜底
     local pids
-    pids=$(lsof -t -i:"$port" 2>/dev/null || ss -tlnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' || true)
-    for pid in $pids; do
-      kill -9 "$pid" 2>/dev/null && echo "  已清理端口 $port 上的进程 $pid" || true
+    pids=$(lsof -t -i:"$port" 2>/dev/null || true)
+    for p in $pids; do
+      kill -9 "$p" 2>/dev/null && echo "  已清理端口 $port 上的进程 $p" || true
     done
   done
 
   sleep 1
+
+  # 最终确认端口已释放
+  for port in $BACKEND_PORT $FRONTEND_PORT; do
+    if lsof -i:"$port" >/dev/null 2>&1 || fuser "$port/tcp" >/dev/null 2>&1; then
+      echo "[WARN] 端口 $port 仍被占用，强制清理..."
+      fuser -k -9 "$port/tcp" 2>/dev/null || true
+      lsof -t -i:"$port" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+      sleep 1
+    fi
+  done
+
   echo "[OK] 服务已停止"
 }
 
@@ -522,7 +540,7 @@ start_services() {
 
   echo "[2/2] 启动前端 (端口 $FRONTEND_PORT)..."
   cd frontend
-  BACKEND_URL="http://127.0.0.1:$BACKEND_PORT" nohup npx next start -p $FRONTEND_PORT > ../logs/frontend.log 2>&1 &
+  BACKEND_URL="http://127.0.0.1:$BACKEND_PORT" nohup node node_modules/.bin/next start -p $FRONTEND_PORT > ../logs/frontend.log 2>&1 &
   echo $! >> "$PID_FILE"
   cd ..
 
