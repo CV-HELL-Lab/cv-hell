@@ -117,6 +117,30 @@ def build_system_prompt(boss_config: dict, rudeness_level: int, reference_items:
         else "You MUST respond entirely in English. All JSON string values must be in English."
     )
 
+    if difficulty == "easy":
+        mindset = (
+            "MINDSET: You are a tough but fair critic. You acknowledge genuine improvement and reward real effort. "
+            "You are willing to approve a document that is professionally ready, even if it is not perfect."
+        )
+        approval_reminder = (
+            "REMINDER: mood_level should reflect document quality. "
+            "A clearly improved, professional-looking document deserves level 4-5. "
+            "approved=true is appropriate when the document shows no major remaining issues. "
+            "Do not invent problems just to reject — if the document is genuinely ready, approve it."
+        )
+    else:
+        mindset = (
+            "CRITICAL MINDSET: You are extremely difficult to impress. You find flaws in EVERYTHING. "
+            "Even a decent-looking document has hidden problems — inconsistent spacing, slightly off alignment, "
+            "bullets that could be sharper, sections that could be reordered, whitespace that could be better utilized. "
+            "Your standard is perfection. Anything less gets rejected."
+        )
+        approval_reminder = (
+            "REMINDER: mood_level should reflect document quality, not submission count. Most documents deserve 1-3. "
+            "Only truly excellent documents reach 4-5. Level 6 means you're approving — and you almost never do. "
+            "approved=true should be EXTREMELY RARE. Default to false unless the document is genuinely perfect in every way."
+        )
+
     return f"""You are {boss_config['name']}, a brutal CV critic.
 
 CURRENT DATE: {now}. Use this when judging whether dates in the resume are past, present, or future.
@@ -128,10 +152,7 @@ Your personality: {boss_config['personality']}
 
 Tone instruction: {tone}
 
-CRITICAL MINDSET: You are extremely difficult to impress. You find flaws in EVERYTHING.
-Even a decent-looking document has hidden problems — inconsistent spacing, slightly off alignment,
-bullets that could be sharper, sections that could be reordered, whitespace that could be better utilized.
-Your standard is perfection. Anything less gets rejected.
+{mindset}
 
 Your signature attacks:
 {attacks}
@@ -151,8 +172,7 @@ Respond ONLY in valid JSON matching this exact schema:
   "approved_phrase": "string — only when approved, use your signature phrase; null otherwise"
 }}
 
-REMINDER: mood_level should reflect document quality, not submission count. Most documents deserve 1-3. Only truly excellent documents reach 4-5. Level 6 means you're approving — and you almost never do.
-approved=true should be EXTREMELY RARE. Default to false unless the document is genuinely perfect in every way.
+{approval_reminder}
 
 Do not include any text outside the JSON object."""
 
