@@ -16,8 +16,10 @@
 import CryptoJS from "crypto-js";
 
 const VAULT_KEY_SESSION = "cvhell_vault_key";
+const VAULT_VERIFIER_KEY = "cvhell_vault_verifier"; // localStorage — persists across tabs
 const PBKDF2_ITERATIONS = 100_000;
 const KEY_SIZE = 256 / 32; // 256-bit key = 8 words
+const VERIFY_PLAINTEXT = "cvhell-vault-ok"; // known string we encrypt to verify key
 
 export type VaultKey = string; // hex string
 
@@ -75,10 +77,35 @@ export function decryptText(ciphertextB64: string, keyHex: VaultKey): Promise<st
 
 // ---------- Session helpers ----------
 
-/** Store key hex in sessionStorage — cleared on tab close. */
-export function saveKeyToSession(key: VaultKey): Promise<void> {
+/**
+ * Save key to sessionStorage AND store an encrypted verifier in localStorage.
+ * The verifier lets us confirm the correct password on re-unlock.
+ */
+export async function saveKeyToSession(key: VaultKey): Promise<void> {
   sessionStorage.setItem(VAULT_KEY_SESSION, key);
-  return Promise.resolve();
+  // Only write verifier once (first login)
+  if (!localStorage.getItem(VAULT_VERIFIER_KEY)) {
+    const verifier = await encryptText(VERIFY_PLAINTEXT, key);
+    localStorage.setItem(VAULT_VERIFIER_KEY, verifier);
+  }
+}
+
+/**
+ * Verify a key against the stored verifier.
+ * Returns true if the key is correct, false if wrong password.
+ */
+export async function verifyKey(key: VaultKey): Promise<boolean> {
+  const verifier = localStorage.getItem(VAULT_VERIFIER_KEY);
+  if (!verifier) {
+    // No verifier yet — first time setup, any key is accepted and verifier is written
+    return true;
+  }
+  try {
+    const decrypted = await decryptText(verifier, key);
+    return decrypted === VERIFY_PLAINTEXT;
+  } catch {
+    return false;
+  }
 }
 
 /** Restore key from sessionStorage. Returns null if not found. */
