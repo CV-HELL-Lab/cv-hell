@@ -6,7 +6,8 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Zap, Skull, CheckCircle2, Globe, User, Trophy, Swords, Clock } from "lucide-react";
+import { Zap, Skull, CheckCircle2, Globe, User, Trophy, Swords, Clock, Lock, LockOpen, ShieldCheck } from "lucide-react";
+import { deriveKey, saveKeyToSession, loadKeyFromSession, clearKeyFromSession, isVaultUnlocked } from "@/lib/vault";
 
 interface HistoryEntry {
   submission_id: string;
@@ -33,12 +34,17 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vaultPassword, setVaultPassword] = useState("");
+  const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  const [vaultError, setVaultError] = useState("");
+  const [vaultLoading, setVaultLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
       router.push("/login");
       return;
     }
+    setVaultUnlocked(isVaultUnlocked());
     const fetch = async () => {
       try {
         const res = await api.get("/me/history");
@@ -52,6 +58,28 @@ export default function ProfilePage() {
     };
     fetch();
   }, [user, router]);
+
+  const handleVaultUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !vaultPassword) return;
+    setVaultLoading(true);
+    setVaultError("");
+    try {
+      const key = await deriveKey(vaultPassword, user.user_id);
+      await saveKeyToSession(key);
+      setVaultUnlocked(true);
+      setVaultPassword("");
+    } catch {
+      setVaultError(t("vault", "error"));
+    } finally {
+      setVaultLoading(false);
+    }
+  };
+
+  const handleVaultLock = () => {
+    clearKeyFromSession();
+    setVaultUnlocked(false);
+  };
 
   if (!user) return null;
 
@@ -151,6 +179,62 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* CV Vault */}
+      <div className="mb-8 border-t border-[#4f3c32] pt-8">
+        <h2 className="text-xl font-bold text-white uppercase tracking-wider mb-2 flex items-center space-x-2">
+          {vaultUnlocked ? <LockOpen size={20} className="text-[var(--color-terminal-green)]" /> : <Lock size={20} className="text-gray-400" />}
+          <span>{t("vault", "title")}</span>
+          {vaultUnlocked && <span className="text-[10px] bg-green-900/40 border border-green-700/40 text-green-400 px-2 py-0.5 rounded-sm uppercase tracking-widest">{t("vault", "active")}</span>}
+        </h2>
+        <p className="text-gray-500 font-mono text-xs mb-5">{t("vault", "desc")}</p>
+
+        <div className="bg-[#241b17] border border-[#3d2e26] p-6 rounded-sm">
+          {vaultUnlocked ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <ShieldCheck size={20} className="text-[var(--color-terminal-green)]" />
+                <div>
+                  <p className="text-white font-bold text-sm">{t("vault", "unlocked_title")}</p>
+                  <p className="text-gray-500 text-xs font-mono mt-0.5">{t("vault", "unlocked_desc")}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleVaultLock}
+                className="px-4 py-2 text-xs font-bold uppercase tracking-wider border border-[#3d2e26] text-gray-500 hover:text-white hover:bg-[#3d2e26] transition"
+              >
+                {t("vault", "lock")}
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleVaultUnlock} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">{t("vault", "password_label")}</label>
+                <input
+                  type="password"
+                  value={vaultPassword}
+                  onChange={(e) => setVaultPassword(e.target.value)}
+                  placeholder={t("vault", "password_placeholder")}
+                  className="w-full bg-[#17110e] border border-[#4f3c32] px-4 py-3 text-white focus:outline-none focus:border-[var(--color-boss-accent)] font-mono text-sm transition"
+                />
+              </div>
+              {vaultError && <p className="text-red-400 text-xs font-mono">{vaultError}</p>}
+              <div className="flex items-start space-x-3 text-xs text-gray-600 font-mono bg-[#17110e] border border-[#3d2e26] p-3 rounded-sm">
+                <ShieldCheck size={14} className="text-gray-500 shrink-0 mt-0.5" />
+                <p>{t("vault", "warning")}</p>
+              </div>
+              <button
+                type="submit"
+                disabled={vaultLoading || !vaultPassword}
+                className="w-full bg-amber-900 hover:bg-amber-800 text-white font-bold uppercase tracking-widest py-3 text-sm transition disabled:opacity-40 flex items-center justify-center space-x-2"
+              >
+                <Lock size={14} />
+                <span>{vaultLoading ? t("vault", "unlocking") : t("vault", "unlock")}</span>
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       {/* Settings */}

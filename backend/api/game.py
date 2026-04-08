@@ -119,6 +119,31 @@ class SubmitRequest(BaseModel):
     language: str = "en"
 
 
+class StoreEncryptedRequest(BaseModel):
+    ciphertext: str  # base64-encoded AES-GCM encrypted text
+
+
+@router.patch("/submission/{submission_id}/store-encrypted")
+def store_encrypted(
+    submission_id: uuid.UUID,
+    body: StoreEncryptedRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Replace plaintext CV with client-encrypted ciphertext. Server can no longer read it."""
+    s = db.query(Submission).filter(Submission.id == submission_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if s.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if s.is_cv_encrypted:
+        raise HTTPException(status_code=409, detail="Already encrypted")
+    s.extracted_text = body.ciphertext
+    s.is_cv_encrypted = True
+    db.commit()
+    return {"ok": True}
+
+
 @router.post("/submit/{boss_id}")
 def submit(
     boss_id: uuid.UUID,
@@ -280,7 +305,9 @@ def get_submission(
         "submission_id": str(s.id),
         "boss_id": str(s.boss_id),
         "version_number": s.version_number,
-        "extracted_text": s.extracted_text,
+        "extracted_text": s.extracted_text if not s.is_cv_encrypted else None,
+        "extracted_text_encrypted": s.extracted_text if s.is_cv_encrypted else None,
+        "is_cv_encrypted": s.is_cv_encrypted,
         "source_type": s.source_type,
         "created_at": s.created_at.isoformat(),
         "boss_response": {

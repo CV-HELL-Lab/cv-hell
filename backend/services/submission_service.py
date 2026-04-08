@@ -314,6 +314,8 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
         "points_remaining": user.points,
         "prize_pool": prize_pool.total_points,
         "points_won": points_won,
+        # Returned so client can encrypt it locally; server won't store it in plaintext if client encrypts
+        "extracted_text_for_encryption": submission.extracted_text or "",
     }
 
 

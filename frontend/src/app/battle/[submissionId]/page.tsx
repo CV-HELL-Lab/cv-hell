@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Loader2, AlertCircle, RefreshCw, Trophy } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Trophy, ShieldCheck } from "lucide-react";
+import { loadKeyFromSession, encryptText } from "@/lib/vault";
 
 interface BossResponse {
   roast_opening: string;
@@ -83,6 +84,18 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
       updatePoints(res.data.points_remaining);
       setPrizePool(res.data.prize_pool);
       
+      // If vault is unlocked, encrypt CV text immediately before it ages in the DB
+      const vaultKey = await loadKeyFromSession();
+      if (vaultKey && res.data.extracted_text_for_encryption) {
+        try {
+          const ciphertext = await encryptText(res.data.extracted_text_for_encryption, vaultKey);
+          await api.patch(`/submission/${res.data.submission_id}/store-encrypted`, { ciphertext });
+        } catch {
+          // Non-fatal: encryption failed, plaintext stays — user will see it in history unencrypted
+          console.warn("Vault encryption step failed — CV stored as plaintext this round.");
+        }
+      }
+
       // Update local state with the new response
       setSubmission((prev) => {
         if (!prev) return null;

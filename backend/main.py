@@ -1,12 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from core.database import engine
 from core import database
 import models  # ensures all models are registered before create_all
 from api import auth, game, admin
 
-# Create tables
+# Create tables (new tables only)
 database.Base.metadata.create_all(bind=engine)
+
+# Incremental column migrations — safe to run repeatedly (IF NOT EXISTS)
+with engine.connect() as conn:
+    conn.execute(text(
+        "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS is_cv_encrypted BOOLEAN NOT NULL DEFAULT FALSE"
+    ))
+    conn.commit()
 
 app = FastAPI(title="CV HELL API", version="0.1.0")
 
