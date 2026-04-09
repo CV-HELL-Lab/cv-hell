@@ -63,6 +63,11 @@ def evaluate_resume(
         match = re.search(r"\{.*\}", clean, re.DOTALL)
         if match:
             clean = match.group(0)
+        # Fix common LLM JSON quirks that Python's json module rejects:
+        # 1. Trailing commas before ] or }  e.g. ["a", "b",]
+        clean = re.sub(r",\s*([}\]])", r"\1", clean)
+        # 2. Single-quoted strings → double-quoted  e.g. {'key': 'val'}
+        clean = re.sub(r"(?<![\\])'", '"', clean)
         result = json.loads(clean.strip())
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse LLM JSON: {e}\nRaw: {raw}")
