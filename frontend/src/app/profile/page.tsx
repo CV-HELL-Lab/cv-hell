@@ -215,11 +215,16 @@ export default function ProfilePage() {
               </button>
             </div>
           ) : (
-            /* Session expired — re-enter login password to restore vault key */
             <form onSubmit={handleVaultUnlock} className="space-y-4">
-              <p className="text-gray-400 text-xs font-mono">{t("vault", "session_expired")}</p>
+              <p className="text-gray-400 text-xs font-mono">
+                {lang === "zh"
+                  ? "会话已过期。输入你的登录密码重新解锁保险箱。"
+                  : "Session expired. Enter your login password to re-unlock the vault."}
+              </p>
               <div>
-                <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">{t("auth", "password")}</label>
+                <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">
+                  {lang === "zh" ? "登录密码" : "Login Password"}
+                </label>
                 <input
                   type="password"
                   value={vaultPassword}

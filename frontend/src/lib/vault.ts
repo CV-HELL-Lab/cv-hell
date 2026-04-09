@@ -83,11 +83,9 @@ export function decryptText(ciphertextB64: string, keyHex: VaultKey): Promise<st
  */
 export async function saveKeyToSession(key: VaultKey): Promise<void> {
   sessionStorage.setItem(VAULT_KEY_SESSION, key);
-  // Only write verifier once (first login)
-  if (!localStorage.getItem(VAULT_VERIFIER_KEY)) {
-    const verifier = await encryptText(VERIFY_PLAINTEXT, key);
-    localStorage.setItem(VAULT_VERIFIER_KEY, verifier);
-  }
+  // Always overwrite verifier so it stays in sync with the current login password
+  const verifier = await encryptText(VERIFY_PLAINTEXT, key);
+  localStorage.setItem(VAULT_VERIFIER_KEY, verifier);
 }
 
 /**
