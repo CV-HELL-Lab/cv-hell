@@ -584,18 +584,19 @@ def set_super_rudeness(
 @router.post("/factory-reset")
 def factory_reset(db: Session = Depends(get_db), _: str = Depends(get_admin)):
     """
-    Wipe all user-generated data and restore bosses to initial state.
-    Deletes: BossResponse, PointTransaction, BossDefeat, Submission, PrizePool, User.
-    Resets: all bosses to locked except order_index=1 which becomes current,
-    rudeness_level back to 2, creates fresh prize pools with 100 points.
-    LLM configs are preserved.
+    Reset game state while preserving user accounts and passwords.
+    Deletes: BossResponse, PointTransaction, BossDefeat, Submission, PrizePool.
+    Resets: user points to INITIAL_POINTS, bosses to initial state.
+    Preserves: User accounts (email, password, display_name), LLM configs.
     """
     db.query(BossResponse).delete()
     db.query(PointTransaction).delete()
     db.query(BossDefeat).delete()
     db.query(Submission).delete()
     db.query(PrizePool).delete()
-    db.query(User).delete()
+
+    # Reset all users' points back to initial value
+    db.query(User).update({"points": settings.INITIAL_POINTS})
 
     bosses = db.query(Boss).order_by(Boss.order_index).all()
     for boss in bosses:
@@ -608,7 +609,7 @@ def factory_reset(db: Session = Depends(get_db), _: str = Depends(get_admin)):
         db.add(pool)
 
     db.commit()
-    return {"ok": True, "message": "Factory reset complete. All user data wiped, bosses restored."}
+    return {"ok": True, "message": "Factory reset complete. Game state reset, user accounts preserved."}
 
 
 @router.post("/force-defeat-current-boss")

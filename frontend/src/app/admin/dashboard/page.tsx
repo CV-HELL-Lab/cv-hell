@@ -130,7 +130,7 @@ export default function AdminDashboard() {
 
   const handleFactoryReset = async () => {
     const confirmed = prompt(
-      'WARNING: This will DELETE all users, submissions, and records.\nType "RESET" to confirm:'
+      'WARNING: This will delete all submissions, battle records, and reset all points.\nUser accounts and passwords will be preserved.\nType "RESET" to confirm:'
     );
     if (confirmed !== "RESET") return;
 
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
               <Bomb size={18} className="mr-2" /> Danger Zone
             </h3>
             <p className="text-gray-500 font-mono text-xs mt-2 max-w-xl">
-              Factory reset will permanently delete all users, submissions, boss defeat records, point transactions, and prize pools. Bosses will be restored to their initial order with the first boss set as current. LLM configs will be preserved.
+              Factory reset will delete all submissions, battle records, and prize pools, and reset all user points to initial value. User accounts and passwords are preserved. Bosses will be restored to initial state. LLM configs are preserved.
             </p>
           </div>
           <button
