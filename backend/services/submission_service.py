@@ -215,7 +215,21 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
     reference_items = _get_reference_items(db, boss.slug, len(prior_versions) + 1)
     from parsers.resume_parser import images_to_base64
     image_paths = json.loads(submission.image_paths or "[]")
-    image_base64 = images_to_base64(image_paths) if image_paths else []
+
+    # Clear image_paths in DB NOW, before trying to read the files.
+    # This ensures retries never hit FileNotFoundError even if the read below fails.
+    try:
+        submission.image_paths = "[]"
+        submission.original_file_path = None
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # Load images into memory (files may no longer exist on a retry — that is fine, we skip them)
+    image_base64 = []
+    if image_paths:
+        existing_paths = [p for p in image_paths if p and os.path.exists(p)]
+        image_base64 = images_to_base64(existing_paths) if existing_paths else []
 
     try:
         eval_result = evaluate_resume(
@@ -231,22 +245,13 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
         logger.error(f"Evaluation failed for submission {submission_id}: {e}")
         raise HTTPException(status_code=503, detail="The boss refused to respond. Try again.")
     finally:
-        # Delete image files immediately after LLM call — CV images are never stored permanently
+        # Delete any image files that are still on disk
         for img_path in image_paths:
             if img_path and os.path.exists(img_path):
                 try:
                     os.remove(img_path)
                 except OSError:
                     pass
-        # Clear image_paths in DB immediately so retries don't look for deleted files.
-        # This must be committed right here — if LLM failed and an exception is raised,
-        # the main transaction will be rolled back and this change would be lost otherwise.
-        try:
-            submission.image_paths = "[]"
-            submission.original_file_path = None
-            db.commit()
-        except Exception:
-            db.rollback()
 
     # --- Step 3: LLM succeeded — now deduct points + persist in one atomic commit ---
     user = db.query(User).filter(User.id == user_id).with_for_update().first()
