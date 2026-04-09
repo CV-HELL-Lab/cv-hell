@@ -19,11 +19,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // If we get a 401 Unauthorized, we might want to clear the token and redirect to login,
-    // but we can handle that via context or in specific components.
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    // Only clear token and redirect on 401 from the /me auth-check endpoint.
+    // Other 401s are handled by individual components — aggressive global redirect
+    // causes phantom logouts when any single request temporarily fails.
+    if (
+      error.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      error.config?.url === "/me"
+    ) {
       localStorage.removeItem("cvhell_token");
-      // Only redirect if not already on login/register pages
       const path = window.location.pathname;
       if (path !== "/login" && path !== "/register") {
         window.location.href = "/login";
