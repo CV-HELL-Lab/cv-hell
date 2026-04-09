@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from fastapi import HTTPException
 
+from sqlalchemy.exc import IntegrityError
 from core.config import settings
 from models.user import User
 from models.boss import Boss
@@ -285,7 +286,36 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
         raw_llm_response=eval_result.get("raw"),
     )
     db.add(boss_response)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Race condition: another concurrent request already wrote the response.
+        # Roll back and return the existing one instead of crashing.
+        db.rollback()
+        existing = db.query(BossResponse).filter(BossResponse.submission_id == submission_id).first()
+        if existing:
+            db.refresh(user)
+            db.refresh(prize_pool)
+            return {
+                "response_id": str(existing.id),
+                "submission_id": str(submission_id),
+                "version_number": submission.version_number,
+                "roast_opening": existing.roast_opening,
+                "why_it_fails": existing.why_it_fails,
+                "top_issues": json.loads(existing.top_issues_json),
+                "fix_direction": existing.fix_direction,
+                "mood": existing.mood,
+                "mood_level": existing.mood_level,
+                "approved": existing.approved,
+                "approved_phrase": existing.approved_phrase,
+                "world_first": False,
+                "points_deducted": 0,
+                "points_remaining": user.points,
+                "prize_pool": prize_pool.total_points if prize_pool else 0,
+                "points_won": 0,
+                "extracted_text_for_encryption": submission.extracted_text or "",
+            }
+        raise
 
     # --- Step 4: First-kill settlement ---
     world_first = False

@@ -94,6 +94,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
   }, [submissionId, user, authLoading, router]);
 
   const triggerEvaluation = async (bossId: string) => {
+    if (evaluating) return;  // prevent double-submit
     setEvaluating(true);
     setError("");
     try {
@@ -247,7 +248,8 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                   <p className="font-mono text-sm">{error}</p>
                   <button 
                     onClick={() => triggerEvaluation(submission.boss_id)}
-                    className="mt-4 px-6 py-2 bg-amber-900/50 hover:bg-amber-800 transition-colors text-white font-mono text-sm uppercase tracking-widest border border-amber-500/50"
+                    disabled={evaluating}
+                    className="mt-4 px-6 py-2 bg-amber-900/50 hover:bg-amber-800 transition-colors text-white font-mono text-sm uppercase tracking-widest border border-amber-500/50 disabled:opacity-50"
                   >
                     {t("battle", "retry")}
                   </button>
