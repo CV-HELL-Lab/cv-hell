@@ -152,28 +152,35 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
         setEvaluating(false);
         return;
       }
-      // Connection may have timed out while backend was still processing.
-      // Silently check if the response was already saved before showing an error.
-      try {
-        const check = await api.get(`/submission/${submissionId}`);
-        if (check.data.boss_response) {
-          updatePoints(check.data.boss_response.points_remaining ?? user!.points);
-          setSubmission((prev) => prev ? { ...prev, boss_response: check.data.boss_response } : prev);
-          if (check.data.boss_response.approved) {
-            sessionStorage.setItem("victoryData", JSON.stringify({
-              world_first: false,
-              points_won: 0,
-              boss_name: bossSlug,
-              approved_phrase: check.data.boss_response.approved_phrase,
-            }));
-            setTimeout(() => router.push("/victory"), 1500);
+      // Connection may have dropped while backend was still processing (LLM is slow).
+      // Poll the submission endpoint for up to 90 seconds waiting for the backend to finish.
+      const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+      let found = false;
+      for (let i = 0; i < 9; i++) {
+        await sleep(10000); // wait 10s between checks
+        try {
+          const check = await api.get(`/submission/${submissionId}`);
+          if (check.data.boss_response) {
+            setSubmission((prev) => prev ? { ...prev, boss_response: check.data.boss_response } : prev);
+            if (check.data.boss_response.approved) {
+              sessionStorage.setItem("victoryData", JSON.stringify({
+                world_first: false,
+                points_won: 0,
+                boss_name: bossSlug,
+                approved_phrase: check.data.boss_response.approved_phrase,
+              }));
+              setTimeout(() => router.push("/victory"), 1500);
+            }
+            found = true;
+            break;
           }
-          return;
+        } catch {
+          // ignore poll failure, keep trying
         }
-      } catch {
-        // ignore secondary check failure
       }
-      setError("The boss refused to respond. Try again.");
+      if (!found) {
+        setError("The boss refused to respond. Try again.");
+      }
     } finally {
       setEvaluating(false);
     }
