@@ -98,7 +98,7 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
     setEvaluating(true);
     setError("");
     try {
-      const res = await api.post(`/submit/${bossId}`, { submission_id: submissionId, language: lang });
+      const res = await api.post(`/submit/${bossId}`, { submission_id: submissionId, language: lang }, { timeout: 180000 });
       
       // Update points and prize pool
       updatePoints(res.data.points_remaining);
