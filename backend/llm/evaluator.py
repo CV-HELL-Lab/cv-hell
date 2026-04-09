@@ -4,6 +4,7 @@ Returns parsed structured response.
 """
 import json
 import logging
+import re
 from .client import get_llm_client
 from .prompt_builder import build_system_prompt, build_user_message
 
@@ -40,6 +41,7 @@ def evaluate_resume(
             ],
             temperature=0.7,
             max_tokens=1024,
+            timeout=60,
         )
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
@@ -49,12 +51,18 @@ def evaluate_resume(
     logger.debug(f"Raw LLM response: {raw}")
 
     try:
-        # Strip markdown code fences if present
         clean = raw.strip()
+        # Strip <think>...</think> blocks (Qwen3 chain-of-thought)
+        clean = re.sub(r"<think>.*?</think>", "", clean, flags=re.DOTALL).strip()
+        # Strip markdown code fences if present
         if clean.startswith("```"):
             clean = clean.split("```")[1]
             if clean.startswith("json"):
                 clean = clean[4:]
+        # Extract first {...} JSON object in case of trailing text
+        match = re.search(r"\{.*\}", clean, re.DOTALL)
+        if match:
+            clean = match.group(0)
         result = json.loads(clean.strip())
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse LLM JSON: {e}\nRaw: {raw}")
