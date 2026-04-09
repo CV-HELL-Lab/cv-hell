@@ -169,6 +169,11 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
           if (check.data.boss_response) {
             setError(""); // clear any status message
             setSubmission((prev) => prev ? { ...prev, boss_response: check.data.boss_response } : prev);
+            // Refresh points display — they were deducted on the backend
+            try {
+              const me = await api.get("/me");
+              if (me.data.points !== undefined) updatePoints(me.data.points);
+            } catch { /* non-critical */ }
             if (check.data.boss_response.approved) {
               sessionStorage.setItem("victoryData", JSON.stringify({
                 world_first: false,
