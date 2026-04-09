@@ -95,7 +95,9 @@ export async function saveKeyToSession(key: VaultKey): Promise<void> {
 export async function verifyKey(key: VaultKey): Promise<boolean> {
   const verifier = localStorage.getItem(VAULT_VERIFIER_KEY);
   if (!verifier) {
-    // No verifier yet — first time setup, any key is accepted and verifier is written
+    // No verifier yet — first time setup: write verifier so future unlocks can be validated
+    const newVerifier = await encryptText(VERIFY_PLAINTEXT, key);
+    localStorage.setItem(VAULT_VERIFIER_KEY, newVerifier);
     return true;
   }
   try {

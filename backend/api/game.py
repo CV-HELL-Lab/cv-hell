@@ -98,12 +98,14 @@ async def upload(
         if not file:
             raise HTTPException(status_code=400, detail="File required for pdf/docx")
         ext = source_type
-        if file.size and file.size > settings.FILE_UPLOAD_MAX_BYTES:
+        if file.size is not None and file.size > settings.FILE_UPLOAD_MAX_BYTES:
             raise HTTPException(status_code=413, detail="File too large")
         os.makedirs(settings.FILE_STORAGE_PATH, exist_ok=True)
         file_path = os.path.join(settings.FILE_STORAGE_PATH, f"{uuid.uuid4()}.{ext}")
+        content = await file.read()
+        if len(content) > settings.FILE_UPLOAD_MAX_BYTES:
+            raise HTTPException(status_code=413, detail="File too large")
         async with aiofiles.open(file_path, "wb") as f:
-            content = await file.read()
             await f.write(content)
     elif source_type == "text":
         if not text_content:
@@ -131,6 +133,9 @@ def store_encrypted(
     db: Session = Depends(get_db),
 ):
     """Replace plaintext CV with client-encrypted ciphertext. Server can no longer read it."""
+    max_ciphertext_len = 5 * 1024 * 1024  # 5MB
+    if len(body.ciphertext) > max_ciphertext_len:
+        raise HTTPException(status_code=413, detail="Ciphertext too large")
     s = db.query(Submission).filter(Submission.id == submission_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Submission not found")

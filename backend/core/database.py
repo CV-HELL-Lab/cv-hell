@@ -10,7 +10,7 @@ def _engine_url(raw: str) -> str:
         )
     return raw
 
-engine = create_engine(_engine_url(settings.DATABASE_URL))
+engine = create_engine(_engine_url(settings.DATABASE_URL), pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

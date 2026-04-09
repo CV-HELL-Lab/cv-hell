@@ -56,6 +56,7 @@ export default function ProgressPage() {
             const isDefeated = boss.status === "defeated";
             const isCurrent = boss.status === "current";
             const isLocked = boss.status === "locked";
+            const isUnlocked = boss.status === "unlocked";
 
             let Icon = Skull;
             let iconColor = "text-gray-500";
@@ -70,6 +71,9 @@ export default function ProgressPage() {
               iconColor = "text-[var(--color-boss-accent)]";
               borderColor = "border-[var(--color-boss-accent)]";
               bgClass = "bg-[#1a0f0f]";
+            } else if (isUnlocked) {
+              Icon = Skull;
+              iconColor = "text-amber-600";
             } else if (isLocked) {
               Icon = Lock;
             }

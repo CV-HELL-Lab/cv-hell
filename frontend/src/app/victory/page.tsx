@@ -19,12 +19,13 @@ export default function VictoryPage() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    // Read victory data from sessionStorage
     const stored = sessionStorage.getItem("victoryData");
     if (stored) {
-      setData(JSON.parse(stored));
-      // Optional: clear it so refresh doesn't trigger confetti forever
-      // sessionStorage.removeItem("victoryData");
+      try {
+        setData(JSON.parse(stored));
+      } catch {
+        sessionStorage.removeItem("victoryData");
+      }
     }
     
     // Set window dimensions for confetti

@@ -135,10 +135,12 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
       });
 
       if (res.data.approved) {
+        const currentBoss = await api.get("/boss/current").catch(() => null);
+        const resolvedSlug = currentBoss?.data?.slug || bossSlug || "unknown";
         sessionStorage.setItem("victoryData", JSON.stringify({
           world_first: res.data.world_first,
           points_won: res.data.points_won,
-          boss_name: bossSlug, // Actually bossSlug is slug, maybe close enough
+          boss_name: resolvedSlug,
           approved_phrase: res.data.approved_phrase,
         }));
         setTimeout(() => {
@@ -175,10 +177,12 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
               if (me.data.points !== undefined) updatePoints(me.data.points);
             } catch { /* non-critical */ }
             if (check.data.boss_response.approved) {
+              const bossInfo = await api.get("/boss/current").catch(() => null);
+              const resolvedSlug = bossInfo?.data?.slug || bossSlug || "unknown";
               sessionStorage.setItem("victoryData", JSON.stringify({
                 world_first: false,
                 points_won: 0,
-                boss_name: bossSlug,
+                boss_name: resolvedSlug,
                 approved_phrase: check.data.boss_response.approved_phrase,
               }));
               setTimeout(() => router.push("/victory"), 1500);

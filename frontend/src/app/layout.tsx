@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import NavBar from "@/components/NavBar";
 import DisclaimerModal from "@/components/DisclaimerModal";
+import HtmlLangSetter from "@/components/HtmlLangSetter";
 
 export const metadata: Metadata = {
   title: "CV HELL | Face the Boss",
@@ -16,9 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="zh" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-[#17110e] text-[#ededed]">
         <LanguageProvider>
+          <HtmlLangSetter />
           <AuthProvider>
             <DisclaimerModal />
             <NavBar />

@@ -59,10 +59,20 @@ def evaluate_resume(
             clean = clean.split("```")[1]
             if clean.startswith("json"):
                 clean = clean[4:]
-        # Extract first {...} JSON object in case of trailing text
-        match = re.search(r"\{.*\}", clean, re.DOTALL)
-        if match:
-            clean = match.group(0)
+        # Extract outermost {...} JSON object using brace-depth matching
+        start = clean.find("{")
+        if start != -1:
+            depth = 0
+            end = start
+            for i, ch in enumerate(clean[start:], start):
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            clean = clean[start:end + 1]
         # Fix trailing commas before ] or }  e.g. ["a", "b",]
         clean = re.sub(r",\s*([}\]])", r"\1", clean)
         result = json.loads(clean.strip())

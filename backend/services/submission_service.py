@@ -381,7 +381,7 @@ def _attempt_first_kill_settlement(
         )
         db.add(defeat)
         db.flush()  # triggers unique constraint if already exists
-    except Exception:
+    except IntegrityError:
         db.rollback()
         return False, 0
 

@@ -75,7 +75,7 @@ export const dict: Record<string, any> = {
       loading: "Loading records...",
       none: "No records found in this category.",
       rank: "Rank",
-      victor: "Victur",
+      victor: "Victor",
       boss: "Boss",
       record: "Record",
       date: "Date",

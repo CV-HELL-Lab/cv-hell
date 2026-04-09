@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from models.user import User
 from core.security import hash_password, verify_password, create_user_token
+from core.config import settings
 import uuid
 
 
@@ -14,7 +15,7 @@ def register_user(db: Session, email: str, password: str, display_name: str) -> 
         email=email,
         password_hash=hash_password(password),
         display_name=display_name,
-        points=100,
+        points=settings.INITIAL_POINTS,
     )
     db.add(user)
     db.commit()

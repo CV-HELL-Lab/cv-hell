@@ -393,6 +393,13 @@ def patch_boss(slug: str, body: BossPatchRequest, db: Session = Depends(get_db),
             raise HTTPException(status_code=400, detail="rudeness_level must be 1, 2, or 3")
         boss.rudeness_level = body.rudeness_level
     if body.status is not None:
+        if body.status not in ("locked", "unlocked", "current", "defeated"):
+            raise HTTPException(status_code=400, detail="status must be one of: locked, unlocked, current, defeated")
+        if body.status == "current" and boss.status != "current":
+            db.query(Boss).filter(Boss.slug != slug, Boss.status == "current").update({"status": "unlocked"})
+            pool = db.query(PrizePool).filter(PrizePool.boss_id == boss.id).first()
+            if not pool:
+                db.add(PrizePool(id=uuid.uuid4(), boss_id=boss.id, total_points=100))
         boss.status = body.status
     if body.order_index is not None:
         boss.order_index = body.order_index
@@ -447,6 +454,7 @@ def list_submissions(
             q = q.filter(Submission.boss_id == boss_obj.id)
     if approved is not None:
         q = q.join(BossResponse).filter(BossResponse.approved == approved)
+    page = max(1, page)
     total = q.count()
     subs = q.order_by(Submission.created_at.desc()).offset((page - 1) * 20).limit(20).all()
     return {
@@ -497,6 +505,7 @@ def get_submission_detail(
 
 @router.get("/users")
 def list_users(page: int = 1, db: Session = Depends(get_db), _: str = Depends(get_admin)):
+    page = max(1, page)
     total = db.query(func.count(User.id)).scalar()
     users = db.query(User).order_by(User.created_at.desc()).offset((page - 1) * 20).limit(20).all()
     return {
