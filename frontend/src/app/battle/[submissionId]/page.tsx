@@ -152,15 +152,22 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
         setEvaluating(false);
         return;
       }
-      // Connection may have dropped while backend was still processing (LLM is slow).
-      // Poll the submission endpoint for up to 90 seconds waiting for the backend to finish.
+      // Connection dropped while backend was still processing (LLM is slow).
+      // Keep polling until we find the committed result — atomicity guarantee:
+      // the user WILL see the result as long as they stay on the page.
       const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+      const MAX_POLLS = 60; // up to 10 minutes (60 × 10s)
       let found = false;
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < MAX_POLLS; i++) {
+        // After 2 minutes with no result, change message to inform user
+        if (i === 12) {
+          setError("__still_processing__");
+        }
         await sleep(10000); // wait 10s between checks
         try {
           const check = await api.get(`/submission/${submissionId}`);
           if (check.data.boss_response) {
+            setError(""); // clear any status message
             setSubmission((prev) => prev ? { ...prev, boss_response: check.data.boss_response } : prev);
             if (check.data.boss_response.approved) {
               sessionStorage.setItem("victoryData", JSON.stringify({
@@ -179,7 +186,8 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
         }
       }
       if (!found) {
-        setError("The boss refused to respond. Try again.");
+        // 10 minutes exhausted — backend truly failed, safe to show error
+        setError("__give_up__");
       }
     } finally {
       setEvaluating(false);
@@ -271,6 +279,32 @@ export default function BattlePage({ params }: { params: Promise<{ submissionId:
                   <p className="text-gray-500 font-mono text-sm animate-pulse">{t("battle", "analyzing")}</p>
                 </div>
               </div>
+            ) : error === "__still_processing__" ? (
+              <div className="h-full flex flex-col justify-center items-center space-y-6">
+                <div className="relative">
+                  <Loader2 className="animate-spin text-[var(--color-boss-accent)] relative z-10" size={64} />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[var(--color-boss-accent)]/20 rounded-full blur-xl animate-pulse" />
+                </div>
+                <div className="text-center space-y-3">
+                  <h2 className="text-xl font-bold text-white uppercase tracking-widest">{t("battle", "boss_reading")}</h2>
+                  <p className="text-gray-400 font-mono text-sm">The connection dropped, but the Boss is still judging.</p>
+                  <p className="text-gray-500 font-mono text-xs">Waiting for result... please stay on this page.</p>
+                  <button onClick={() => window.location.reload()} className="mt-2 px-4 py-1 border border-gray-600 text-gray-400 font-mono text-xs uppercase tracking-widest hover:border-gray-400 hover:text-gray-200 transition-colors">
+                    Refresh page
+                  </button>
+                </div>
+              </div>
+            ) : error === "__give_up__" ? (
+               <div className="bg-amber-950/30 border border-amber-500/50 text-amber-500 p-6 flex flex-col items-center space-y-4 text-center">
+                  <AlertCircle size={32} />
+                  <p className="font-mono text-sm">The Boss took too long to respond. Your points were not deducted.</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-6 py-2 bg-amber-900/50 hover:bg-amber-800 transition-colors text-white font-mono text-sm uppercase tracking-widest border border-amber-500/50"
+                  >
+                    Refresh &amp; Check Result
+                  </button>
+               </div>
             ) : error ? (
                <div className="bg-amber-950/30 border border-amber-500/50 text-amber-500 p-6 flex flex-col items-center space-y-4 text-center">
                   <AlertCircle size={32} />
