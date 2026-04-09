@@ -41,7 +41,7 @@ def evaluate_resume(
             ],
             temperature=0.7,
             max_tokens=1024,
-            timeout=60,
+            timeout=300,
         )
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
