@@ -238,9 +238,15 @@ def submit_for_evaluation(db: Session, user_id: uuid.UUID, boss_id: uuid.UUID, s
                     os.remove(img_path)
                 except OSError:
                     pass
-        # Clear image_paths from DB record (original file was already deleted at upload time)
-        submission.image_paths = "[]"
-        submission.original_file_path = None
+        # Clear image_paths in DB immediately so retries don't look for deleted files.
+        # This must be committed right here — if LLM failed and an exception is raised,
+        # the main transaction will be rolled back and this change would be lost otherwise.
+        try:
+            submission.image_paths = "[]"
+            submission.original_file_path = None
+            db.commit()
+        except Exception:
+            db.rollback()
 
     # --- Step 3: LLM succeeded — now deduct points + persist in one atomic commit ---
     user = db.query(User).filter(User.id == user_id).with_for_update().first()
